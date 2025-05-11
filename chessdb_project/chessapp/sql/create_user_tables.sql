@@ -1,7 +1,7 @@
 CREATE TABLE Users (
     id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(50) UNIQUE NOT NULL,
-    password_hash CHAR(60) NOT NULL,
+    password CHAR(60) NOT NULL,
     role ENUM('manager', 'player', 'coach', 'arbiter') NOT NULL
 );
 

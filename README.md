@@ -48,6 +48,11 @@ docker exec -i chess-mysql \
   mysql -u chessuser -pchesspass chessdb < ./sql/create_user_tables.sql
 
 ```
+
+For Windows, you can use the following command to create the tables:
+```
+ Get-Content .\sql\create_user_tables.sql | docker exec -i chessdb_mysql mysql -u chessuser -pchesspass chessdb
+```
 In Django, iteracting with DB using admin functions (ready()) is not recommended. Instead, we will use the command line to create the tables. [ref](https://stackoverflow.com/questions/57369950/how-to-call-a-function-before-a-django-app-start/57369989#57369989:~:text=AppConfig.ready()%20docs,in%20your%20ready()%20implementation.)
 
 
