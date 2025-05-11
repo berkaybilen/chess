@@ -42,6 +42,26 @@ User: chessuser
 
 Password: chesspass
 
+## Create the DB Tables
+```
+docker exec -i chess-mysql \
+  mysql -u chessuser -pchesspass chessdb < ./sql/create_user_tables.sql
+
+```
+In Django, iteracting with DB using admin functions (ready()) is not recommended. Instead, we will use the command line to create the tables. [ref](https://stackoverflow.com/questions/57369950/how-to-call-a-function-before-a-django-app-start/57369989#57369989:~:text=AppConfig.ready()%20docs,in%20your%20ready()%20implementation.)
+
+
+
+Note that if this does not work do the following:
+1. connect to the DB using the following command in terminal:
+```
+mysql -h 127.0.0.1 -P 3307 -u chessuser -p
+```
+2. Directly run the SQL commands in the `create_user_tables.sql` file to create the tables.
+
+
+
+
 ## Run the Application In Venv Terminal
 
 ```bash

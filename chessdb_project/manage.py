@@ -19,4 +19,10 @@ def main():
 
 
 if __name__ == "__main__":
+    import chessapp.db as db
+    with db.get_cursor() as cur:
+        # Example usage of the get_cursor context manager
+        cur.execute("SELECT * FROM Users;")
+        users = cur.fetchall()
+        print(users)
     main()
