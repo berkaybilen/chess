@@ -1,0 +1,201 @@
+DELIMITER //
+
+-- 6.1 Password Policy & Hashing
+CREATE TRIGGER trg_user_password_policy
+BEFORE INSERT ON `User`
+FOR EACH ROW
+BEGIN
+    IF CHAR_LENGTH(NEW.password) < 8
+       OR NEW.password NOT REGEXP BINARY '[A-Z]'
+       OR NEW.password NOT REGEXP BINARY '[a-z]'
+       OR NEW.password NOT REGEXP '[0-9]'
+       OR NEW.password NOT REGEXP '[^A-Za-z0-9]'
+    THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Password must be ≥8 chars, include upper/lower/digit/special';
+    END IF;
+    SET NEW.password = SHA2(NEW.password, 256);
+END;
+
+-- Mirror on UPDATE
+CREATE TRIGGER trg_user_password_policy_upd
+BEFORE UPDATE ON `User`
+FOR EACH ROW
+BEGIN
+    IF OLD.password <> NEW.password THEN
+        IF CHAR_LENGTH(NEW.password) < 8
+           OR NEW.password NOT REGEXP BINARY '[A-Z]'
+           OR NEW.password NOT REGEXP BINARY '[a-z]'
+           OR NEW.password NOT REGEXP '[0-9]'
+           OR NEW.password NOT REGEXP '[^A-Za-z0-9]'
+        THEN
+            SIGNAL SQLSTATE '45000'
+              SET MESSAGE_TEXT = 'Password must be ≥8 chars, include upper/lower/digit/special';
+        END IF;
+        SET NEW.password = SHA2(NEW.password, 256);
+    END IF;
+END;
+
+-- 6.2 No Overlapping Matches (Hall/Table/Time)
+CREATE TRIGGER trg_match_time_conflict
+BEFORE INSERT ON `Match`
+FOR EACH ROW
+BEGIN
+    DECLARE cnt INT;
+    SELECT COUNT(*) INTO cnt
+      FROM `Match`
+      WHERE date = NEW.date
+        AND hallID = NEW.hallID
+        AND tableNo = NEW.tableNo
+        AND (
+            NEW.timeSlot    BETWEEN timeSlot    AND timeSlot+1
+         OR NEW.timeSlot+1 BETWEEN timeSlot    AND timeSlot+1
+        );
+    IF cnt > 0 THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Time slot conflict for hall/table';
+    END IF;
+END;
+
+-- 6.3 Arbiter Availability
+CREATE TRIGGER trg_arbiter_availability
+BEFORE INSERT ON `Match`
+FOR EACH ROW
+BEGIN
+    DECLARE cnt INT;
+    SELECT COUNT(*) INTO cnt
+      FROM `Match`
+      WHERE date = NEW.date
+        AND assignedArbiter = NEW.assignedArbiter
+        AND (
+            NEW.timeSlot    BETWEEN timeSlot    AND timeSlot+1
+         OR NEW.timeSlot+1 BETWEEN timeSlot    AND timeSlot+1
+        );
+    IF cnt > 0 THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Arbiter not available at this time';
+    END IF;
+END;
+
+-- 6.4 Player Availability
+CREATE TRIGGER trg_player_availability
+BEFORE INSERT ON `Match`
+FOR EACH ROW
+BEGIN
+    DECLARE cntW, cntB INT;
+    -- white player
+    SELECT COUNT(*) INTO cntW
+      FROM `Match`
+      WHERE date = NEW.date
+        AND (whitePlayerUsername = NEW.whitePlayerUsername
+          OR blackPlayerUsername = NEW.whitePlayerUsername)
+        AND (
+            NEW.timeSlot    BETWEEN timeSlot    AND timeSlot+1
+         OR NEW.timeSlot+1 BETWEEN timeSlot    AND timeSlot+1
+        );
+    IF cntW > 0 THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'White player unavailable at this time';
+    END IF;
+    -- black player
+    SELECT COUNT(*) INTO cntB
+      FROM `Match`
+      WHERE date = NEW.date
+        AND (whitePlayerUsername = NEW.blackPlayerUsername
+          OR blackPlayerUsername = NEW.blackPlayerUsername)
+        AND (
+            NEW.timeSlot    BETWEEN timeSlot    AND timeSlot+1
+         OR NEW.timeSlot+1 BETWEEN timeSlot    AND timeSlot+1
+        );
+    IF cntB > 0 THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Black player unavailable at this time';
+    END IF;
+END;
+
+-- 6.5 Team Membership Checks
+CREATE TRIGGER trg_player_team_membership
+BEFORE INSERT ON `Match`
+FOR EACH ROW
+BEGIN
+    DECLARE cnt INT;
+    SELECT COUNT(*) INTO cnt
+      FROM Plays_in
+      WHERE playerUsername = NEW.whitePlayerUsername
+        AND teamID = NEW.whitePlayerTeamID;
+    IF cnt = 0 THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'White player not in specified team';
+    END IF;
+    SELECT COUNT(*) INTO cnt
+      FROM Plays_in
+      WHERE playerUsername = NEW.blackPlayerUsername
+        AND teamID = NEW.blackPlayerTeamID;
+    IF cnt = 0 THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Black player not in specified team';
+    END IF;
+END;
+
+-- 6.6 Tournament Registration Checks
+CREATE TRIGGER trg_team_tournament_registration
+BEFORE INSERT ON `Match`
+FOR EACH ROW
+BEGIN
+    DECLARE cnt INT;
+    SELECT COUNT(*) INTO cnt
+      FROM Participates
+      WHERE tournamentID = NEW.tournamentID
+        AND teamID = NEW.whitePlayerTeamID;
+    IF cnt = 0 THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'White team not registered for tournament';
+    END IF;
+    SELECT COUNT(*) INTO cnt
+      FROM Participates
+      WHERE tournamentID = NEW.tournamentID
+        AND teamID = NEW.blackPlayerTeamID;
+    IF cnt = 0 THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Black team not registered for tournament';
+    END IF;
+END;
+
+-- 6.7 Coach Contract Overlap
+CREATE TRIGGER trg_coach_contract_overlap
+BEFORE INSERT ON CoachTeamAgreement
+FOR EACH ROW
+BEGIN
+    DECLARE cnt INT;
+    SELECT COUNT(*) INTO cnt
+      FROM CoachTeamAgreement
+      WHERE coachUsername = NEW.coachUsername
+        AND (
+            NEW.contractStart <= contractFinish
+         AND NEW.contractFinish >= contractStart
+        );
+    IF cnt > 0 THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Coach has overlapping contract';
+    END IF;
+END;
+
+-- 6.8 Rating Rules: only once & only after match date
+CREATE TRIGGER trg_rating_rules
+BEFORE UPDATE ON `Match`
+FOR EACH ROW
+BEGIN
+    -- first rating
+    IF OLD.rating IS NULL AND NEW.rating IS NOT NULL THEN
+        IF OLD.date > CURRENT_DATE() THEN
+            SIGNAL SQLSTATE '45000'
+              SET MESSAGE_TEXT = 'Cannot rate match before it occurs';
+        END IF;
+    -- prevent changes once set
+    ELSEIF OLD.rating IS NOT NULL AND NEW.rating <> OLD.rating THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Rating is immutable once set';
+    END IF;
+END;
+
+DELIMITER ;
