@@ -5,6 +5,16 @@ CREATE TABLE Users (
     role ENUM('manager', 'player', 'coach', 'arbiter') NOT NULL
 );
 
+CREATE TABLE Title (
+    titleID   INT AUTO_INCREMENT PRIMARY KEY,
+    titleName VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE Certification (
+    certificationID INT AUTO_INCREMENT PRIMARY KEY,
+    certName        VARCHAR(100) NOT NULL UNIQUE
+);
+
 CREATE TABLE Players (
     user_id INT PRIMARY KEY,
     name VARCHAR(50),
@@ -13,7 +23,7 @@ CREATE TABLE Players (
     date_of_birth DATE,
     fide_id VARCHAR(20) UNIQUE,
     elo_rating INT NOT NULL CHECK (elo_rating > 1000),
-    title_id VARCHAR(10),
+    title_id INT,
 
     FOREIGN KEY (user_id) REFERENCES Users(id),
     FOREIGN KEY (title_id) REFERENCES Title(titleID)
@@ -52,14 +62,4 @@ CREATE TABLE ArbiterCertifications (
     PRIMARY KEY (arbiter_id, certification),
 
     FOREIGN KEY (arbiter_id) REFERENCES Arbiters(user_id)
-);
-
-CREATE TABLE Title (
-    titleID   INT AUTO_INCREMENT PRIMARY KEY,
-    titleName VARCHAR(50) NOT NULL UNIQUE
-);
-
-CREATE TABLE Certification (
-    certificationID INT AUTO_INCREMENT PRIMARY KEY,
-    certName        VARCHAR(100) NOT NULL UNIQUE
 );

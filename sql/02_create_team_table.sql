@@ -20,13 +20,13 @@ CREATE TABLE Team (
 
 -- COACH–TEAM CONTRACTS
 CREATE TABLE CoachTeamAgreement (
-    coachUsername   VARCHAR(50)  NOT NULL,
+    coachUsername   INT  NOT NULL,
     teamID          INT          NOT NULL,
     contractStart   DATE         NOT NULL,
     contractFinish  DATE         NOT NULL,
     PRIMARY KEY (coachUsername, teamID),
 
-    FOREIGN KEY (coachUsername) REFERENCES Coach(username)
+    FOREIGN KEY (coachUsername) REFERENCES Coaches(user_id)
         ON UPDATE CASCADE ON DELETE CASCADE,
 
     FOREIGN KEY (teamID) REFERENCES Team(teamID)
@@ -36,11 +36,11 @@ CREATE TABLE CoachTeamAgreement (
 );
 
 CREATE TABLE Plays_in (
-    playerUsername  VARCHAR(50) NOT NULL,
+    playerUserId  INT NOT NULL,
     teamID          INT         NOT NULL,
-    PRIMARY KEY (playerUsername, teamID),
-    
-    FOREIGN KEY (playerUsername) REFERENCES Player(username)
+    PRIMARY KEY (playerUserId, teamID),
+
+    FOREIGN KEY (playerUserId) REFERENCES Players(user_id)
         ON UPDATE CASCADE ON DELETE CASCADE,
     FOREIGN KEY (teamID) REFERENCES Team(teamID)
         ON UPDATE CASCADE ON DELETE CASCADE

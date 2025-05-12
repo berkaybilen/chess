@@ -5,11 +5,12 @@ CREATE TABLE Tournament (
     startDate      DATE         NOT NULL,
     endDate        DATE         NOT NULL,
     format         VARCHAR(50)  NOT NULL,
-    chiefArbiter   VARCHAR(50)  NOT NULL,
+    chiefArbiter   INT  NOT NULL,
     winnerTeamID   INT          DEFAULT NULL,
     PRIMARY KEY (tournamentID),
     UNIQUE (tournamentName),
-    FOREIGN KEY (chiefArbiter) REFERENCES Arbiter(username)
+
+    FOREIGN KEY (chiefArbiter) REFERENCES Arbiters(user_id)
         ON UPDATE CASCADE ON DELETE RESTRICT,
     FOREIGN KEY (winnerTeamID) REFERENCES Team(teamID)
         ON UPDATE CASCADE ON DELETE SET NULL,
