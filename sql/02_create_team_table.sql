@@ -20,27 +20,27 @@ CREATE TABLE Team (
 
 -- COACH–TEAM CONTRACTS
 CREATE TABLE CoachTeamAgreement (
-    coachUsername   INT  NOT NULL,
-    teamID          INT          NOT NULL,
-    contractStart   DATE         NOT NULL,
-    contractFinish  DATE         NOT NULL,
-    PRIMARY KEY (coachUsername, teamID),
+    coach_username  VARCHAR(50)  NOT NULL,
+    teamID         INT          NOT NULL,
+    contractStart  DATE         NOT NULL,
+    contractFinish DATE         NOT NULL,
+    PRIMARY KEY (coach_username, teamID),
 
-    FOREIGN KEY (coachUsername) REFERENCES Coaches(user_id)
+    FOREIGN KEY (coach_username) REFERENCES Coaches(username)
         ON UPDATE CASCADE ON DELETE CASCADE,
 
     FOREIGN KEY (teamID) REFERENCES Team(teamID)
         ON UPDATE CASCADE ON DELETE CASCADE,
 
-    CHECK (contractStart < contractFinish) -- todo : CHECK statements may not work.
+    CHECK (contractStart < contractFinish)
 );
 
 CREATE TABLE Plays_in (
-    playerUserId  INT NOT NULL,
-    teamID          INT         NOT NULL,
-    PRIMARY KEY (playerUserId, teamID),
+    player_username VARCHAR(50) NOT NULL,
+    teamID         INT         NOT NULL,
+    PRIMARY KEY (player_username, teamID),
 
-    FOREIGN KEY (playerUserId) REFERENCES Players(user_id)
+    FOREIGN KEY (player_username) REFERENCES Players(username)
         ON UPDATE CASCADE ON DELETE CASCADE,
     FOREIGN KEY (teamID) REFERENCES Team(teamID)
         ON UPDATE CASCADE ON DELETE CASCADE

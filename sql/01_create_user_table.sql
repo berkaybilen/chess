@@ -1,6 +1,5 @@
 CREATE TABLE Users (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    username VARCHAR(50) UNIQUE NOT NULL,
+    username VARCHAR(50) PRIMARY KEY,
     password CHAR(60) NOT NULL,
     role ENUM('manager', 'player', 'coach', 'arbiter') NOT NULL
 );
@@ -16,7 +15,7 @@ CREATE TABLE Certification (
 );
 
 CREATE TABLE Players (
-    user_id INT PRIMARY KEY,
+    username VARCHAR(50) PRIMARY KEY,
     name VARCHAR(50),
     surname VARCHAR(50),
     nationality VARCHAR(50),
@@ -25,41 +24,51 @@ CREATE TABLE Players (
     elo_rating INT NOT NULL CHECK (elo_rating > 1000),
     title_id INT,
 
-    FOREIGN KEY (user_id) REFERENCES Users(id),
+    FOREIGN KEY (username) REFERENCES Users(username)
+        ON UPDATE CASCADE ON DELETE CASCADE,
     FOREIGN KEY (title_id) REFERENCES Title(titleID)
+        ON UPDATE CASCADE ON DELETE SET NULL
 );
 
 CREATE TABLE Coaches (
-    user_id INT PRIMARY KEY,
+    username VARCHAR(50) PRIMARY KEY,
     name VARCHAR(50),
     surname VARCHAR(50),
     nationality VARCHAR(50),
 
-    FOREIGN KEY (user_id) REFERENCES Users(id)
+    FOREIGN KEY (username) REFERENCES Users(username)
+        ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE Arbiters (
-    user_id INT PRIMARY KEY,
+    username VARCHAR(50) PRIMARY KEY,
     name VARCHAR(50),
     surname VARCHAR(50),
     nationality VARCHAR(50),
     experience_level VARCHAR(20),
 
-    FOREIGN KEY (user_id) REFERENCES Users(id)
+    FOREIGN KEY (username) REFERENCES Users(username)
+        ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE CoachCertifications (
-    coach_id INT,
-    certification VARCHAR(100),
-    PRIMARY KEY (coach_id, certification),
+    coach_username VARCHAR(50),
+    certification_id INT,
+    PRIMARY KEY (coach_username, certification_id),
 
-    FOREIGN KEY (coach_id) REFERENCES Coaches(user_id)
+    FOREIGN KEY (coach_username) REFERENCES Coaches(username)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (certification_id) REFERENCES Certification(certificationID)
+        ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE ArbiterCertifications (
-    arbiter_id INT,
-    certification VARCHAR(100),
-    PRIMARY KEY (arbiter_id, certification),
+    arbiter_username VARCHAR(50),
+    certification_id INT,
+    PRIMARY KEY (arbiter_username, certification_id),
 
-    FOREIGN KEY (arbiter_id) REFERENCES Arbiters(user_id)
+    FOREIGN KEY (arbiter_username) REFERENCES Arbiters(username)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (certification_id) REFERENCES Certification(certificationID)
+        ON UPDATE CASCADE ON DELETE CASCADE
 );

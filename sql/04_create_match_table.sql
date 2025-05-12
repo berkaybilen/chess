@@ -1,19 +1,19 @@
-CREATE TABLE Match (
+CREATE TABLE Matches (
     matchID               INT AUTO_INCREMENT PRIMARY KEY,
     tournamentID          INT NOT NULL,
     hallID                INT NOT NULL,
     tableNo               INT NOT NULL,
     
-    whitePlayerTeamID     INT NOT NULL,
-    whitePlayerUsername   VARCHAR(50) NOT NULL,
-    blackPlayerTeamID     INT NOT NULL,
-    blackPlayerUsername   VARCHAR(50) NOT NULL,
+    team1ID               INT NOT NULL,
+    team2ID               INT NOT NULL,
+    whitePlayerUsername   VARCHAR(50),
+    blackPlayerUsername   VARCHAR(50),
 
     result                ENUM('white', 'black', 'draw') DEFAULT NULL,
-    timeSlot              INT NOT NULL CHECK (timeSlot BETWEEN 1 AND 3),
+    timeSlot              INT NOT NULL CHECK (timeSlot BETWEEN 1 AND 7),
     date                  DATE NOT NULL,
 
-    assignedArbiter       VARCHAR(50) NOT NULL,
+    arbiter_username      VARCHAR(50) NOT NULL,
     rating                INT DEFAULT NULL CHECK (rating BETWEEN 1 AND 10),
 
     -- Foreign Keys
@@ -23,22 +23,16 @@ CREATE TABLE Match (
     FOREIGN KEY (hallID, tableNo) REFERENCES HallTable(hallID, tableNo)
         ON DELETE CASCADE ON UPDATE CASCADE,
 
-    FOREIGN KEY (whitePlayerTeamID) REFERENCES Team(teamID)
+    FOREIGN KEY (team1ID) REFERENCES Team(teamID)
         ON DELETE RESTRICT ON UPDATE CASCADE,
-    FOREIGN KEY (blackPlayerTeamID) REFERENCES Team(teamID)
-        ON DELETE RESTRICT ON UPDATE CASCADE,
-
-    FOREIGN KEY (whitePlayerUsername) REFERENCES Player(username)
-        ON DELETE RESTRICT ON UPDATE CASCADE,
-    FOREIGN KEY (blackPlayerUsername) REFERENCES Player(username)
+    FOREIGN KEY (team2ID) REFERENCES Team(teamID)
         ON DELETE RESTRICT ON UPDATE CASCADE,
 
-    FOREIGN KEY (assignedArbiter) REFERENCES Arbiter(username)
+    FOREIGN KEY (whitePlayerUsername) REFERENCES Players(username)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    FOREIGN KEY (blackPlayerUsername) REFERENCES Players(username)
         ON DELETE RESTRICT ON UPDATE CASCADE,
 
-    -- Ensure different teams
-    CHECK (whitePlayerTeamID <> blackPlayerTeamID),
-
-    -- Prevent same player on both sides
-    CHECK (whitePlayerUsername <> blackPlayerUsername)
+    FOREIGN KEY (arbiter_username) REFERENCES Arbiters(username)
+        ON DELETE RESTRICT ON UPDATE CASCADE
 );
