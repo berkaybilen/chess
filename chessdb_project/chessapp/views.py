@@ -61,17 +61,131 @@ def dashboard_view(request, role, user_id):
             """)
             arbiters = cur.fetchall()
 
+            # Get team matches and player assignments
+            cur.execute("""
+                SELECT 
+                    m.*,
+                    h.hallName,
+                    t1.teamName as team1Name,
+                    t2.teamName as team2Name,
+                    CONCAT(a.name, ' ', a.surname) as arbiterName,
+                    CASE 
+                        WHEN m.team1ID IN (
+                            SELECT teamID FROM CoachTeamAgreement 
+                            WHERE coachUsername = %s 
+                            AND CURRENT_DATE BETWEEN contractStart AND contractFinish
+                        ) THEN true
+                        ELSE false
+                    END as is_coach_team1,
+                    wp.name as white_player_name,
+                    bp.name as black_player_name
+                FROM Match m
+                JOIN Hall h ON m.hallID = h.hallID
+                JOIN Team t1 ON m.team1ID = t1.teamID
+                JOIN Team t2 ON m.team2ID = t2.teamID
+                JOIN Arbiters a ON m.assignedArbiter = a.user_id
+                LEFT JOIN Players wp ON m.whitePlayerUsername = wp.user_id
+                LEFT JOIN Players bp ON m.blackPlayerUsername = bp.user_id
+                WHERE m.team1ID IN (
+                    SELECT teamID FROM CoachTeamAgreement 
+                    WHERE coachUsername = %s 
+                    AND CURRENT_DATE BETWEEN contractStart AND contractFinish
+                )
+                OR m.team2ID IN (
+                    SELECT teamID FROM CoachTeamAgreement 
+                    WHERE coachUsername = %s 
+                    AND CURRENT_DATE BETWEEN contractStart AND contractFinish
+                )
+                ORDER BY m.date, m.timeSlot
+            """, (user_id, user_id, user_id))
+            team_matches = cur.fetchall()
+
+            # Get available players from coach's teams
+            cur.execute("""
+                SELECT p.* 
+                FROM Players p
+                JOIN Plays_in pi ON p.user_id = pi.playerUserId
+                JOIN Team t ON pi.teamID = t.teamID
+                JOIN CoachTeamAgreement cta ON t.teamID = cta.teamID
+                WHERE cta.coachUsername = %s
+                AND CURRENT_DATE BETWEEN cta.contractStart AND cta.contractFinish
+            """, (user_id,))
+            team_players = cur.fetchall()
+
         context = {
             "user": user,
             "halls": halls,
             "tables": tables,
             "coach_teams": coach_teams,
             "all_teams": all_teams,
-            "arbiters": arbiters
+            "arbiters": arbiters,
+            "team_matches": team_matches,
+            "team_players": team_players
         }
         return render(request, "dashboard_coach.html", context)
 
     return render(request, f"dashboard_{role}.html", {"user": user})
+
+@csrf_exempt
+def assign_player(request, user_id, match_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    # Verify if the user is a coach
+    with get_cursor(dictrows=True) as cur:
+        cur.execute("SELECT * FROM Users WHERE id = %s AND role = 'coach'", (user_id,))
+        coach = cur.fetchone()
+        
+    if not coach:
+        return JsonResponse({"error": "Unauthorized access"}, status=401)
+    
+    try:
+        player_id = request.POST.get('player_id')
+        if not player_id:
+            return redirect(f"/dashboard/coach/{user_id}?error=Player not selected")
+        
+        with get_cursor(dictrows=True) as cur:
+            # Verify if the match exists and coach has rights to assign
+            cur.execute("""
+                SELECT m.*, 
+                    CASE 
+                        WHEN m.team1ID IN (
+                            SELECT teamID FROM CoachTeamAgreement 
+                            WHERE coachUsername = %s 
+                            AND CURRENT_DATE BETWEEN contractStart AND contractFinish
+                        ) THEN true
+                        ELSE false
+                    END as is_coach_team1
+                FROM Match m
+                WHERE m.matchID = %s
+            """, (user_id, match_id))
+            match = cur.fetchone()
+            
+            if not match:
+                return redirect(f"/dashboard/coach/{user_id}?error=Match not found")
+            
+            # Verify player belongs to the correct team
+            team_id = match['team1ID'] if match['is_coach_team1'] else match['team2ID']
+            cur.execute("""
+                SELECT 1 FROM Plays_in
+                WHERE playerUserId = %s AND teamID = %s
+            """, (player_id, team_id))
+            if not cur.fetchone():
+                return redirect(f"/dashboard/coach/{user_id}?error=Player not in your team")
+            
+            # Update the match with the player assignment
+            player_field = 'whitePlayerUsername' if match['is_coach_team1'] else 'blackPlayerUsername'
+            cur.execute(f"""
+                UPDATE Match 
+                SET {player_field} = %s
+                WHERE matchID = %s
+                AND {player_field} IS NULL
+            """, (player_id, match_id))
+            
+            return redirect(f"/dashboard/coach/{user_id}?success=Player assigned successfully")
+            
+    except Exception as e:
+        return redirect(f"/dashboard/coach/{user_id}?error={str(e)}")
 
 @csrf_exempt
 def create_match(request, user_id):
