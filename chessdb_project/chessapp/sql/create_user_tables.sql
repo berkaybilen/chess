@@ -12,9 +12,11 @@ CREATE TABLE Players (
     nationality VARCHAR(50),
     date_of_birth DATE,
     fide_id VARCHAR(20) UNIQUE,
-    elo_rating INT,
+    elo_rating INT NOT NULL CHECK (elo_rating > 1000),
     title_id VARCHAR(10),
-    FOREIGN KEY (user_id) REFERENCES Users(id)
+
+    FOREIGN KEY (user_id) REFERENCES Users(id),
+    FOREIGN KEY (title_id) REFERENCES Title(titleID)
 );
 
 CREATE TABLE Coaches (
@@ -22,6 +24,7 @@ CREATE TABLE Coaches (
     name VARCHAR(50),
     surname VARCHAR(50),
     nationality VARCHAR(50),
+
     FOREIGN KEY (user_id) REFERENCES Users(id)
 );
 
@@ -31,6 +34,7 @@ CREATE TABLE Arbiters (
     surname VARCHAR(50),
     nationality VARCHAR(50),
     experience_level VARCHAR(20),
+
     FOREIGN KEY (user_id) REFERENCES Users(id)
 );
 
@@ -38,6 +42,7 @@ CREATE TABLE CoachCertifications (
     coach_id INT,
     certification VARCHAR(100),
     PRIMARY KEY (coach_id, certification),
+
     FOREIGN KEY (coach_id) REFERENCES Coaches(user_id)
 );
 
@@ -45,5 +50,16 @@ CREATE TABLE ArbiterCertifications (
     arbiter_id INT,
     certification VARCHAR(100),
     PRIMARY KEY (arbiter_id, certification),
+
     FOREIGN KEY (arbiter_id) REFERENCES Arbiters(user_id)
+);
+
+CREATE TABLE Title (
+    titleID   INT AUTO_INCREMENT PRIMARY KEY,
+    titleName VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE Certification (
+    certificationID INT AUTO_INCREMENT PRIMARY KEY,
+    certName        VARCHAR(100) NOT NULL UNIQUE
 );
