@@ -48,8 +48,8 @@ BEGIN
         AND hallID = NEW.hallID
         AND tableNo = NEW.tableNo
         AND (
-            NEW.timeSlot    BETWEEN timeSlot    AND timeSlot+1
-         OR NEW.timeSlot+1 BETWEEN timeSlot    AND timeSlot+1
+            NEW.timeSlot BETWEEN timeSlot AND timeSlot+1
+         OR NEW.timeSlot+1 BETWEEN timeSlot AND timeSlot+1
         );
     IF cnt > 0 THEN
         SIGNAL SQLSTATE '45000'
@@ -63,13 +63,26 @@ BEFORE INSERT ON `Match`
 FOR EACH ROW
 BEGIN
     DECLARE cnt INT;
+    DECLARE is_certified BOOLEAN;
+    
+    -- Check if arbiter is certified
+    SELECT COUNT(*) > 0 INTO is_certified
+    FROM ArbiterCertifications
+    WHERE arbiter_id = NEW.assignedArbiter;
+    
+    IF NOT is_certified THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Selected arbiter is not certified';
+    END IF;
+    
+    -- Check arbiter availability
     SELECT COUNT(*) INTO cnt
       FROM `Match`
       WHERE date = NEW.date
         AND assignedArbiter = NEW.assignedArbiter
         AND (
-            NEW.timeSlot    BETWEEN timeSlot    AND timeSlot+1
-         OR NEW.timeSlot+1 BETWEEN timeSlot    AND timeSlot+1
+            NEW.timeSlot BETWEEN timeSlot AND timeSlot+1
+         OR NEW.timeSlot+1 BETWEEN timeSlot AND timeSlot+1
         );
     IF cnt > 0 THEN
         SIGNAL SQLSTATE '45000'
@@ -77,7 +90,60 @@ BEGIN
     END IF;
 END;
 
--- 6.4 Player Availability
+-- 6.4 Team Availability
+CREATE TRIGGER trg_team_availability
+BEFORE INSERT ON `Match`
+FOR EACH ROW
+BEGIN
+    DECLARE cnt INT;
+    
+    -- Check team1 availability
+    SELECT COUNT(*) INTO cnt
+      FROM `Match`
+      WHERE date = NEW.date
+        AND (team1ID = NEW.team1ID OR team2ID = NEW.team1ID)
+        AND (
+            NEW.timeSlot BETWEEN timeSlot AND timeSlot+1
+         OR NEW.timeSlot+1 BETWEEN timeSlot AND timeSlot+1
+        );
+    IF cnt > 0 THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Team 1 is already scheduled for a match at this time';
+    END IF;
+    
+    -- Check team2 availability
+    SELECT COUNT(*) INTO cnt
+      FROM `Match`
+      WHERE date = NEW.date
+        AND (team1ID = NEW.team2ID OR team2ID = NEW.team2ID)
+        AND (
+            NEW.timeSlot BETWEEN timeSlot AND timeSlot+1
+         OR NEW.timeSlot+1 BETWEEN timeSlot AND timeSlot+1
+        );
+    IF cnt > 0 THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Team 2 is already scheduled for a match at this time';
+    END IF;
+    
+    -- Check if teams are different
+    IF NEW.team1ID = NEW.team2ID THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'A team cannot play against itself';
+    END IF;
+END;
+
+-- 6.5 Time Slot Validation
+CREATE TRIGGER trg_timeslot_validation
+BEFORE INSERT ON `Match`
+FOR EACH ROW
+BEGIN
+    IF NEW.timeSlot < 1 OR NEW.timeSlot > 7 THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Time slot must be between 1 and 7';
+    END IF;
+END;
+
+-- 6.6 Player Availability
 CREATE TRIGGER trg_player_availability
 BEFORE INSERT ON `Match`
 FOR EACH ROW
@@ -113,7 +179,7 @@ BEGIN
     END IF;
 END;
 
--- 6.5 Team Membership Checks
+-- 6.7 Team Membership Checks
 CREATE TRIGGER trg_player_team_membership
 BEFORE INSERT ON `Match`
 FOR EACH ROW
@@ -137,7 +203,7 @@ BEGIN
     END IF;
 END;
 
--- 6.6 Tournament Registration Checks
+-- 6.8 Tournament Registration Checks
 CREATE TRIGGER trg_team_tournament_registration
 BEFORE INSERT ON `Match`
 FOR EACH ROW
@@ -161,7 +227,7 @@ BEGIN
     END IF;
 END;
 
--- 6.7 Coach Contract Overlap
+-- 6.9 Coach Contract Overlap
 CREATE TRIGGER trg_coach_contract_overlap
 BEFORE INSERT ON CoachTeamAgreement
 FOR EACH ROW
@@ -180,7 +246,7 @@ BEGIN
     END IF;
 END;
 
--- 6.8 Rating Rules: only once & only after match date
+-- 6.10 Rating Rules: only once & only after match date
 CREATE TRIGGER trg_rating_rules
 BEFORE UPDATE ON `Match`
 FOR EACH ROW
