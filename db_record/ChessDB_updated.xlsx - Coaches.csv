@@ -1,0 +1,11 @@
+username,password,name,surname,nationality,team_id,contract_start,contract_finish
+carol,coachpw,Carol,White,Canada,1,01-01-2023,01-01-2026
+david_b,dPass!99,David,Brown,USA,2,15-02-2024,15-02-2026
+emma_green,E@mma77,Emma,Green,UK,3,01-03-2022,01-03-2025
+fatih,FatihC21,Fatih,Ceylan,Turkey,4,10-05-2024,10-05-2026
+hana,Hana$45,Hana,Yamada,Japan,5,01-04-2023,01-10-2024
+lucaas,Lucas#1,Lucas,Müller,Germany,6,01-01-2024,01-01-2025
+mia_rose,Mia!888,Mia,Rossi,Italy,7,01-06-2024,01-06-2025
+onur,onUr@32,Onur,Kaya,Turkey,8,15-03-2023,15-09-2025
+sofia_lop,S0fia#,Sofia,López,Spain,9,01-05-2024,01-11-2025
+arslan_yusuf,Yusuf199,Yusuf,Arslan,Turkey,10,01-02-2024,01-08-2026
