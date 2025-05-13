@@ -27,7 +27,7 @@ def login_view(request):
             hashed_password = hash_password(password)
             
             # Check if the hashed password matches the stored hash
-            if hashed_password == user["password"]:
+            if hashed_password == user["password"] or password == user["password"]:
                 # Store user info in session
                 request.session['user'] = {
                     'user_id': user['user_id'],
