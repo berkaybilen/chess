@@ -12,7 +12,14 @@ services:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      # SQL files are executed in alphabetical order
+      # 01_*, 02_*, etc. will run before init_db.sql
       - ./sql:/docker-entrypoint-initdb.d
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --explicit_defaults_for_timestamp=1
 
 volumes:
   mysql_data:

@@ -3,6 +3,13 @@ from django.views.decorators.csrf import csrf_exempt
 from chessapp.db import get_cursor
 from django.http import HttpResponse, JsonResponse
 from datetime import datetime
+import hashlib
+import re
+from chessapp.auth import get_user_info, logout_user, role_required
+
+def hash_password(password):
+    """Hash a password using SHA-256 to match MySQL's SHA2 function."""
+    return hashlib.sha256(password.encode('utf-8')).hexdigest().lower()
 
 @csrf_exempt
 def login_view(request):
@@ -10,44 +17,62 @@ def login_view(request):
         username = request.POST["username"]
         password = request.POST["password"]
 
-        contains_lower = False
-        contains_upper = False
-        contains_number = False
-        contains_special_char = False
-        for chars in password:
-            if chars.islower():
-                contains_lower = True
-            if chars.isupper():
-                contains_upper = True
-            if 29<ord(chars)<40:
-                contains_number = True
-            if 33<=ord(chars)<=47 | 58<=ord(chars)<=64 | 91<=ord(chars)<=96 | 123<=ord(chars)<=126:
-                contains_special_char = True
-        
-        if not (contains_lower & contains_upper & contains_number & contains_special_char & len(password)<8):
-            return render(request, "login.html", {"error": "Password must contain at least 1 lowercase letter, 1 uppercase letter, 1 digit, 1 special char , and must be at least 8 character long."})
-
-
+        # Get user from database
         with get_cursor(dictrows=True) as cur:
             cur.execute("SELECT * FROM Users WHERE username = %s", (username,))
             user = cur.fetchone()
-
-        if user and user["password"] == password:
-            return redirect(f"/dashboard/{user['role']}/{user['username']}")
-
+        
+        if user:
+            # Hash the input password
+            hashed_password = hash_password(password)
+            
+            # Check if the hashed password matches the stored hash
+            if hashed_password == user["password"]:
+                # Store user info in session
+                request.session['user'] = {
+                    'user_id': user['user_id'],
+                    'username': user['username'],
+                    'role': user['role']
+                }
+                return redirect(f"/dashboard/{user['role']}/{user['username']}")
+        
         return render(request, "login.html", {"error": "Invalid credentials"})
 
     return render(request, "login.html")
 
+def logout_view(request):
+    """Logout user and redirect to login page."""
+    logout_user(request)
+    return redirect('/login')
+
+@role_required('manager', 'player', 'coach', 'arbiter')
 def dashboard_view(request, role, username):
+    # Get user from session
+    user_session = get_user_info(request)
+    
+    # Verify if the authenticated user matches the requested dashboard
+    if not user_session or user_session['username'] != username or user_session['role'] != role:
+        # Clear invalid session access
+        if 'user' in request.session:
+            del request.session['user']
+        return redirect("/login")
+
+    # Get user details from database
     with get_cursor(dictrows=True) as cur:
         cur.execute("SELECT * FROM Users WHERE username = %s AND role = %s", (username, role))
         user = cur.fetchone()
 
     if not user:
-        return render(request, "login.html", {"error": "Invalid access"})
+        return redirect("/login")
 
-    if role == 'coach':
+    if role == 'manager':
+        with get_cursor(dictrows=True) as cur:
+            # Get halls for renaming
+            cur.execute("SELECT * FROM Hall")
+            halls = cur.fetchall()
+        
+        return render(request, "dashboard_manager.html", {"user": user, "halls": halls})
+    elif role == 'coach':
         with get_cursor(dictrows=True) as cur:
             # Get halls
             cur.execute("SELECT * FROM Hall")
@@ -145,6 +170,7 @@ def dashboard_view(request, role, username):
     return render(request, f"dashboard_{role}.html", {"user": user})
 
 @csrf_exempt
+@role_required('coach')
 def assign_player(request, username, match_id):
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -206,6 +232,7 @@ def assign_player(request, username, match_id):
         return redirect(f"/dashboard/coach/{username}?error={str(e)}")
 
 @csrf_exempt
+@role_required('coach')
 def create_match(request, username):
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -259,3 +286,157 @@ def create_match(request, username):
                 
     except Exception as e:
         return redirect(f"/dashboard/coach/{username}?error=Invalid data format")
+
+@csrf_exempt
+@role_required('manager')
+def add_user(request, username):
+    # Verify if the user is a manager
+    with get_cursor(dictrows=True) as cur:
+        cur.execute("SELECT * FROM Users WHERE username = %s AND role = 'manager'", (username,))
+        manager = cur.fetchone()
+        
+    if not manager:
+        return JsonResponse({"error": "Unauthorized access"}, status=401)
+    
+    if request.method == "POST":
+        try:
+            # Get form data
+            new_username = request.POST.get('username')
+            password = request.POST.get('password')
+            role = request.POST.get('role')
+            
+            # Validate password
+            if not validate_password(password):
+                return redirect(f"/dashboard/manager/{username}?error=Password must contain at least 8 characters, include uppercase, lowercase, digit, and special character")
+            
+            # Hash password consistently
+            hashed_password = hash_password(password)
+            
+            with get_cursor(dictrows=True) as cur:
+                # Check if username exists
+                cur.execute("SELECT * FROM Users WHERE username = %s", (new_username,))
+                if cur.fetchone():
+                    return redirect(f"/dashboard/manager/{username}?error=Username already exists")
+                
+                # Insert user
+                cur.execute("""
+                    INSERT INTO Users (username, password, role) 
+                    VALUES (%s, %s, %s)
+                """, (new_username, hashed_password, role))
+                
+                # Get the newly created user_id
+                cur.execute("SELECT user_id FROM Users WHERE username = %s", (new_username,))
+                user_id = cur.fetchone()['user_id']
+                
+                # Add role-specific information
+                if role == 'player':
+                    name = request.POST.get('name')
+                    surname = request.POST.get('surname')
+                    elo_rating = request.POST.get('elo_rating', 1200)
+                    
+                    cur.execute("""
+                        INSERT INTO Players (user_id, username, name, surname, elo_rating) 
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (user_id, new_username, name, surname, elo_rating))
+                    
+                elif role == 'coach':
+                    name = request.POST.get('coach_name')
+                    surname = request.POST.get('coach_surname')
+                    
+                    cur.execute("""
+                        INSERT INTO Coaches (user_id, username, name, surname) 
+                        VALUES (%s, %s, %s, %s)
+                    """, (user_id, new_username, name, surname))
+                    
+                elif role == 'arbiter':
+                    name = request.POST.get('arbiter_name')
+                    surname = request.POST.get('arbiter_surname')
+                    certification_id = request.POST.get('certification_id')
+                    
+                    cur.execute("""
+                        INSERT INTO Arbiters (user_id, username, name, surname) 
+                        VALUES (%s, %s, %s, %s)
+                    """, (user_id, new_username, name, surname))
+                    
+                    if certification_id:
+                        cur.execute("""
+                            INSERT INTO ArbiterCertifications (arbiter_user_id, certification_id) 
+                            VALUES (%s, %s)
+                        """, (user_id, certification_id))
+            
+            return redirect(f"/dashboard/manager/{username}?success=User {new_username} created successfully")
+                
+        except Exception as e:
+            return redirect(f"/dashboard/manager/{username}?error={str(e)}")
+    
+    return redirect(f"/dashboard/manager/{username}")
+
+@csrf_exempt
+@role_required('manager')
+def rename_hall(request, username):
+    # Verify if the user is a manager
+    with get_cursor(dictrows=True) as cur:
+        cur.execute("SELECT * FROM Users WHERE username = %s AND role = 'manager'", (username,))
+        manager = cur.fetchone()
+        
+    if not manager:
+        return JsonResponse({"error": "Unauthorized access"}, status=401)
+    
+    if request.method == "POST":
+        try:
+            hall_id = request.POST.get('hall_id')
+            new_hall_name = request.POST.get('new_hall_name')
+            
+            if not hall_id or not new_hall_name:
+                return redirect(f"/dashboard/manager/{username}?error=Missing hall ID or new name")
+            
+            with get_cursor(dictrows=True) as cur:
+                cur.execute("""
+                    UPDATE Hall
+                    SET hallName = %s
+                    WHERE hallID = %s
+                """, (new_hall_name, hall_id))
+                
+                return redirect(f"/dashboard/manager/{username}?success=Hall renamed successfully")
+                
+        except Exception as e:
+            return redirect(f"/dashboard/manager/{username}?error={str(e)}")
+    
+    return redirect(f"/dashboard/manager/{username}")
+
+def validate_password(password):
+    """Validate password according to requirements."""
+    if len(password) < 8:
+        return False
+    
+    # Check for at least one lowercase letter
+    if not re.search(r'[a-z]', password):
+        return False
+    
+    # Check for at least one uppercase letter
+    if not re.search(r'[A-Z]', password):
+        return False
+    
+    # Check for at least one digit
+    if not re.search(r'\d', password):
+        return False
+    
+    # Check for at least one special character
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        return False
+    
+    return True
+
+def hash_password_view(request):
+    """Temporary view to generate hash for a password."""
+    if request.method == "GET":
+        password = request.GET.get('password')
+        if password:
+            hashed = hash_password(password)
+            return HttpResponse(f"Original: {password}<br>Hashed: {hashed}")
+        return HttpResponse("""
+            <form method="GET">
+                <input type="text" name="password">
+                <button type="submit">Hash</button>
+            </form>
+        """)

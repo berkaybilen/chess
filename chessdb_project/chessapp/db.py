@@ -1,4 +1,3 @@
-
 import os
 import mysql.connector
 from contextlib import contextmanager
@@ -21,7 +20,7 @@ def get_cursor(dictrows=False):
         password="chesspass",
         database="chessdb",
         autocommit=True,
-        port = 3307,
+        port=3307,
     )
     try:
         cursor = cnx.cursor(dictionary=dictrows)

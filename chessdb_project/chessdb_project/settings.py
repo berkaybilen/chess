@@ -75,11 +75,15 @@ WSGI_APPLICATION = "chessdb_project.wsgi.application"
 
 DATABASES = {
     "default": {
-        'host': '127.0.0.1',
-        'user': 'chessuser',
-        'password': 'chesspass',
-        'database': 'chessdb',
-        'port': 3306
+        'ENGINE': 'mysql.connector.django',
+        'NAME': 'chessdb',
+        'USER': 'chessuser',
+        'PASSWORD': 'chesspass',
+        'HOST': '127.0.0.1',
+        'PORT': 3307,
+        'OPTIONS': {
+            'autocommit': True,
+        }
     }
 }
 
@@ -124,3 +128,9 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Session settings
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 86400  # 1 day in seconds
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SESSION_SAVE_EVERY_REQUEST = True

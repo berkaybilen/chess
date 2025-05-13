@@ -5,7 +5,7 @@
 <!-- Match Creation Form -->
 <div class="match-creation-form">
     <h2>Create New Match</h2>
-    <form id="matchForm" method="POST" action="/create_match/{{ user.id }}/">
+    <form id="matchForm" method="POST" action="/create_match/{{ user.username }}/">
         {% csrf_token %}
         <div class="form-group">
             <label>Date:</label>
@@ -22,7 +22,7 @@
             <label>Hall:</label>
             <select name="hall_id" required>
                 {% for hall in halls %}
-                    <option value="{{ hall.id }}">{{ hall.hallName }}</option>
+                    <option value="{{ hall.hallID }}">{{ hall.hallName }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -31,7 +31,7 @@
             <label>Table:</label>
             <select name="table_id" required>
                 {% for table in tables %}
-                    <option value="{{ table.id }}">Table {{ table.tableNo }}</option>
+                    <option value="{{ table.tableNo }}">Table {{ table.tableNo }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -40,7 +40,7 @@
             <label>Your Team:</label>
             <select name="team1_id" required>
                 {% for team in coach_teams %}
-                    <option value="{{ team.id }}">{{ team.teamName }}</option>
+                    <option value="{{ team.teamID }}">{{ team.teamName }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -49,16 +49,16 @@
             <label>Opposing Team:</label>
             <select name="team2_id" required>
                 {% for team in all_teams %}
-                    <option value="{{ team.id }}">{{ team.teamName }}</option>
+                    <option value="{{ team.teamID }}">{{ team.teamName }}</option>
                 {% endfor %}
             </select>
         </div>
 
         <div class="form-group">
             <label>Arbiter:</label>
-            <select name="arbiter_id" required>
+            <select name="arbiter_username" required>
                 {% for arbiter in arbiters %}
-                    <option value="{{ arbiter.id }}">{{ arbiter.name }} {{ arbiter.surname }}</option>
+                    <option value="{{ arbiter.username }}">{{ arbiter.name }} {{ arbiter.surname }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -85,13 +85,13 @@
             {% if match.is_coach_team1 %}
                 <div class="player-assignment">
                     <h4>Assign Your Player</h4>
-                    {% if not match.white_player %}
-                        <form method="POST" action="/assign_player/{{ user.id }}/{{ match.matchID }}/">
+                    {% if not match.white_player_name %}
+                        <form method="POST" action="/assign_player/{{ user.username }}/{{ match.matchID }}/">
                             {% csrf_token %}
-                            <select name="player_id" required>
+                            <select name="player_username" required>
                                 <option value="">Select a player</option>
                                 {% for player in team_players %}
-                                    <option value="{{ player.user_id }}">
+                                    <option value="{{ player.username }}">
                                         {{ player.name }} {{ player.surname }} (Rating: {{ player.elo_rating }})
                                     </option>
                                 {% endfor %}
@@ -105,7 +105,7 @@
             {% else %}
                 <div class="player-assignment">
                     <h4>Opponent's Player</h4>
-                    {% if match.black_player %}
+                    {% if match.black_player_name %}
                         <p>Assigned Player: {{ match.black_player_name }}</p>
                     {% else %}
                         <p>Waiting for opponent to assign player</p>
