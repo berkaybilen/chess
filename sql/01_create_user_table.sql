@@ -5,16 +5,6 @@ CREATE TABLE Users (
     role ENUM('manager', 'player', 'coach', 'arbiter') NOT NULL
 );
 
-CREATE TABLE Title (
-    titleID   INT AUTO_INCREMENT PRIMARY KEY,
-    titleName VARCHAR(50) NOT NULL UNIQUE
-);
-
-CREATE TABLE Certification (
-    certificationID INT AUTO_INCREMENT PRIMARY KEY,
-    certName        VARCHAR(100) NOT NULL UNIQUE
-);
-
 CREATE TABLE Players (
     user_id INT PRIMARY KEY,
     username VARCHAR(50) NOT NULL,
@@ -32,6 +22,11 @@ CREATE TABLE Players (
         ON UPDATE CASCADE ON DELETE CASCADE,
     FOREIGN KEY (title_id) REFERENCES Title(titleID)
         ON UPDATE CASCADE ON DELETE SET NULL
+);
+
+CREATE TABLE Title (
+    titleID   INT AUTO_INCREMENT PRIMARY KEY,
+    titleName VARCHAR(50) NOT NULL UNIQUE
 );
 
 CREATE TABLE Coaches (
@@ -59,6 +54,11 @@ CREATE TABLE Arbiters (
         ON UPDATE CASCADE ON DELETE CASCADE,
     FOREIGN KEY (username) REFERENCES Users(username)
         ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE Certification (
+    certificationID INT AUTO_INCREMENT PRIMARY KEY,
+    certName        VARCHAR(100) NOT NULL UNIQUE
 );
 
 CREATE TABLE CoachCertifications (
