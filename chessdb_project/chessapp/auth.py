@@ -19,8 +19,8 @@ def role_required(*allowed_roles):
             # If user exists in session, verify against database for security
             with get_cursor(dictrows=True) as cur:
                 cur.execute(
-                    "SELECT * FROM Users WHERE user_id = %s AND username = %s AND role = %s", 
-                    (user["user_id"], user["username"], user["role"])
+                    "SELECT * FROM Users WHERE id = %s AND username = %s AND role = %s", 
+                    (user["id"], user["username"], user["role"])
                 )
                 db_user = cur.fetchone()
             

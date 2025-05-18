@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Chess Tournament Management</title>
     <meta charset="utf-8">
@@ -11,31 +12,60 @@
             margin: 0;
             padding: 20px;
         }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 15px;
         }
+
         .header {
             background-color: #f8f9fa;
             padding: 1rem;
             margin-bottom: 2rem;
             border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
+
         .content {
             padding: 1rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logout-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .logout-btn:hover {
+            background-color: #c82333;
         }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
     <div class="container">
         <div class="header">
             <h1>Chess Tournament Management</h1>
             {% if user %}
-                <div class="user-info">
-                    Logged in as: {{ user.username }} ({{ user.role }})
-                </div>
+            <div class="user-info">
+                Logged in as: {{ user.username }} ({{ user.role }})
+                <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+            </div>
             {% endif %}
         </div>
         <div class="content">
@@ -43,4 +73,5 @@
         </div>
     </div>
 </body>
-</html> 
+
+</html>
