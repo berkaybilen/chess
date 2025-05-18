@@ -313,6 +313,12 @@ def create_match(request, username):
         if not all([match_date, start_slot, hall_id, table_id, team1_id, team2_id, arbiter_username]):
             return JsonResponse({"error": "Missing required fields"}, status=400)
         
+        # Calculate the end slot (each match takes 2 time slots)
+        end_slot = start_slot + 1
+        
+        if start_slot > 6:  # If starting at slot 7, it would end at slot 8, which is invalid
+            return redirect(f"/dashboard/coach/{username}?error=Invalid time slot. Matches require 2 consecutive slots.")
+        
         with get_cursor(dictrows=True) as cur:
             # Check if hall_id and table_no combination exists
             cur.execute("""
@@ -323,14 +329,60 @@ def create_match(request, username):
             
             if not hall_table:
                 return redirect(f"/dashboard/coach/{username}?error=Invalid hall and table combination")
-                
-            # Get the arbiter's ID
+            
+            # Validate that teams are different
+            if team1_id == team2_id:
+                return redirect(f"/dashboard/coach/{username}?error=Teams cannot play against themselves")
+            
+            # Check for table availability - ensure no matches overlap with this table on the given date/time slots
+            cur.execute("""
+                SELECT * FROM Matches
+                WHERE hall_id = %s AND table_no = %s AND date = %s
+                AND (
+                    (time_slot <= %s AND time_slot + 1 >= %s) OR  -- Existing match overlaps with start_slot
+                    (time_slot <= %s AND time_slot + 1 >= %s)     -- Existing match overlaps with end_slot
+                )
+            """, (hall_id, table_id, match_date, start_slot, start_slot, end_slot, end_slot))
+            
+            overlapping_table_matches = cur.fetchall()
+            if overlapping_table_matches:
+                return redirect(f"/dashboard/coach/{username}?error=The selected table is not available at this time")
+            
+            # Check if arbiter is available (not assigned to another match at the same time)
             cur.execute("SELECT id FROM Arbiters WHERE username = %s", (arbiter_username,))
             arbiter_data = cur.fetchone()
             if not arbiter_data:
                 return redirect(f"/dashboard/coach/{username}?error=Arbiter not found")
                 
             arbiter_id = arbiter_data['id']
+            
+            cur.execute("""
+                SELECT * FROM Matches
+                WHERE arbiter_user_id = %s AND date = %s
+                AND (
+                    (time_slot <= %s AND time_slot + 1 >= %s) OR  -- Existing match overlaps with start_slot
+                    (time_slot <= %s AND time_slot + 1 >= %s)     -- Existing match overlaps with end_slot
+                )
+            """, (arbiter_id, match_date, start_slot, start_slot, end_slot, end_slot))
+            
+            overlapping_arbiter_matches = cur.fetchall()
+            if overlapping_arbiter_matches:
+                return redirect(f"/dashboard/coach/{username}?error=The selected arbiter is already assigned to another match at this time")
+            
+            # Check if either team is already scheduled for another match at the same time
+            cur.execute("""
+                SELECT * FROM Matches
+                WHERE date = %s
+                AND (
+                    (time_slot <= %s AND time_slot + 1 >= %s) OR  -- Existing match overlaps with start_slot
+                    (time_slot <= %s AND time_slot + 1 >= %s)     -- Existing match overlaps with end_slot
+                )
+                AND (team_white = %s OR team_white = %s OR team_black = %s OR team_black = %s)
+            """, (match_date, start_slot, start_slot, end_slot, end_slot, team1_id, team2_id, team1_id, team2_id))
+            
+            overlapping_team_matches = cur.fetchall()
+            if overlapping_team_matches:
+                return redirect(f"/dashboard/coach/{username}?error=One or both teams are already scheduled for another match at this time")
             
             # Verify if the coach is associated with team1
             cur.execute("""
@@ -341,22 +393,18 @@ def create_match(request, username):
             if not cur.fetchone():
                 return JsonResponse({"error": "You can only create matches for your own team"}, status=403)
             
-            # Insert the match - the triggers will handle the validations
-            try:
-                cur.execute("""
-                    INSERT INTO Matches 
-                    (date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """, (match_date, start_slot, hall_id, table_id, team1_id, team2_id, arbiter_id))
-                
-                match_id = cur.lastrowid
-                return redirect(f"/dashboard/coach/{username}?success=Match created successfully")
-                
-            except Exception as e:
-                return redirect(f"/dashboard/coach/{username}?error={str(e)}")
+            # All validations passed, insert the match
+            cur.execute("""
+                INSERT INTO Matches 
+                (date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (match_date, start_slot, hall_id, table_id, team1_id, team2_id, arbiter_id))
+            
+            match_id = cur.lastrowid
+            return redirect(f"/dashboard/coach/{username}?success=Match created successfully")
                 
     except Exception as e:
-        return redirect(f"/dashboard/coach/{username}?error=Invalid data format: {str(e)}")
+        return redirect(f"/dashboard/coach/{username}?error=Error creating match: {str(e)}")
 
 @csrf_exempt
 @role_required('coach')
