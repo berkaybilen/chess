@@ -5,6 +5,11 @@ CREATE TABLE Users (
     role ENUM('manager', 'player', 'coach', 'arbiter') NOT NULL
 );
 
+CREATE TABLE Title (
+    id   INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE
+);
+
 CREATE TABLE Players (
     id INT PRIMARY KEY,
     username VARCHAR(50) NOT NULL,
@@ -22,10 +27,6 @@ CREATE TABLE Players (
         ON UPDATE CASCADE ON DELETE SET NULL
 );
 
-CREATE TABLE Title (
-    id   INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE
-);
 
 CREATE TABLE Coaches (
     id INT PRIMARY KEY,
@@ -35,7 +36,7 @@ CREATE TABLE Coaches (
     nationality VARCHAR(50),
 
     FOREIGN KEY (id) REFERENCES Users(id)
-        ON UPDATE CASCADE ON DELETE CASCADE,
+        ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE Arbiters (

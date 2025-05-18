@@ -26,12 +26,10 @@ CREATE TABLE Matches (
 );
 
 CREATE TABLE MatchResults (
-    id INT NOT NULL,
+    id INT PRIMARY KEY,
     white_player_id INT NOT NULL,
     black_player_id INT NOT NULL,
     result ENUM('draw', 'black wins', 'white wins'),
-
-    PRIMARY KEY id,
 
     FOREIGN KEY (white_player_id) REFERENCES Players(id)
         ON DELETE RESTRICT ON UPDATE CASCADE,

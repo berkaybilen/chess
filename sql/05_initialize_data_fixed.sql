@@ -39,7 +39,7 @@ INSERT INTO Certification (id, name) VALUES
 (5, 'Local Certification'),
 (6, 'Club Level'),
 (7, 'National Level'),
-(8, 'Regional Certified'),
+(8, 'Regional Certified');
 
 -- Populate Sponsor table
 INSERT INTO Sponsor (id, name) VALUES
@@ -597,115 +597,135 @@ SELECT 1, p1.id, p2.id, 'draw'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'alice' AND p2.username = 'bob1';
 
-INSERT INTO Matches SELECT 2, STR_TO_DATE('01-02-2025', '%d-%m-%Y'), 3, 1, 2, 3, 4, a.id, '7,9'
+
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 2, STR_TO_DATE('01-02-2025', '%d-%m-%Y'), 3, 1, 2, 3, 4, a.id, '7,9'
 FROM Arbiters a WHERE a.username = 'lucy';
 INSERT INTO MatchResults SELECT 2, p1.id, p2.id, 'black wins'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'clara' AND p2.username = 'david';
 
-INSERT INTO Matches SELECT 3, STR_TO_DATE('02-02-2025', '%d-%m-%Y'), 1, 2, 1, 5, 6, a.id, NULL
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 3, STR_TO_DATE('02-02-2025', '%d-%m-%Y'), 1, 2, 1, 5, 6, a.id, NULL
 FROM Arbiters a WHERE a.username = 'mark';
 INSERT INTO MatchResults SELECT 3, p1.id, p2.id, 'black wins'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'emma' AND p2.username = 'felix';
 
-INSERT INTO Matches SELECT 4, STR_TO_DATE('02-02-2025', '%d-%m-%Y'), 3, 2, 2, 7, 8, a.id, '8,5'
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 4, STR_TO_DATE('02-02-2025', '%d-%m-%Y'), 3, 2, 2, 7, 8, a.id, '8,5'
 FROM Arbiters a WHERE a.username = 'erin';
 INSERT INTO MatchResults SELECT 4, p1.id, p2.id, 'draw'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'grace' AND p2.username = 'henry';
 
-INSERT INTO Matches SELECT 5, STR_TO_DATE('03-02-2025', '%d-%m-%Y'), 1, 3, 1, 9, 10, a.id, NULL
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 5, STR_TO_DATE('03-02-2025', '%d-%m-%Y'), 1, 3, 1, 9, 10, a.id, NULL
 FROM Arbiters a WHERE a.username = 'lucy';
 INSERT INTO MatchResults SELECT 5, p1.id, p2.id, 'black wins'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'isabel' AND p2.username = 'jack';
 
-INSERT INTO Matches SELECT 6, STR_TO_DATE('03-02-2025', '%d-%m-%Y'), 3, 3, 2, 1, 3, a.id, NULL
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 6, STR_TO_DATE('03-02-2025', '%d-%m-%Y'), 3, 3, 2, 1, 3, a.id, NULL
 FROM Arbiters a WHERE a.username = 'mohamed';
 INSERT INTO MatchResults SELECT 6, p1.id, p2.id, 'white wins'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'kara' AND p2.username = 'liam';
 
-INSERT INTO Matches SELECT 7, STR_TO_DATE('04-02-2025', '%d-%m-%Y'), 1, 4, 1, 2, 5, a.id, '4,5'
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 7, STR_TO_DATE('04-02-2025', '%d-%m-%Y'), 1, 4, 1, 2, 5, a.id, '4,5'
 FROM Arbiters a WHERE a.username = 'erin';
 INSERT INTO MatchResults SELECT 7, p1.id, p2.id, 'black wins'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'mia' AND p2.username = 'noah';
 
-INSERT INTO Matches SELECT 8, STR_TO_DATE('04-02-2025', '%d-%m-%Y'), 3, 4, 2, 6, 7, a.id, '3,1'
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 8, STR_TO_DATE('04-02-2025', '%d-%m-%Y'), 3, 4, 2, 6, 7, a.id, '3,1'
 FROM Arbiters a WHERE a.username = 'sara';
 INSERT INTO MatchResults SELECT 8, p1.id, p2.id, 'white wins'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'olivia' AND p2.username = 'peter';
 
-INSERT INTO Matches SELECT 9, STR_TO_DATE('05-02-2025', '%d-%m-%Y'), 1, 5, 1, 8, 9, a.id, '7,7'
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 9, STR_TO_DATE('05-02-2025', '%d-%m-%Y'), 1, 5, 1, 8, 9, a.id, '7,7'
 FROM Arbiters a WHERE a.username = 'ana';
 INSERT INTO MatchResults SELECT 9, p1.id, p2.id, 'black wins'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'quinn' AND p2.username = 'rachel';
 
-INSERT INTO Matches SELECT 10, STR_TO_DATE('05-02-2025', '%d-%m-%Y'), 3, 5, 2, 10, 1, a.id, '6,4'
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 10, STR_TO_DATE('05-02-2025', '%d-%m-%Y'), 3, 5, 2, 10, 1, a.id, '6,4'
 FROM Arbiters a WHERE a.username = 'mark';
 INSERT INTO MatchResults SELECT 10, p1.id, p2.id, 'black wins'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'sam' AND p2.username = 'tina';
 
-INSERT INTO Matches SELECT 11, STR_TO_DATE('06-02-2025', '%d-%m-%Y'), 1, 1, 1, 3, 5, a.id, '5,1'
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 11, STR_TO_DATE('06-02-2025', '%d-%m-%Y'), 1, 1, 1, 3, 5, a.id, '5,1'
 FROM Arbiters a WHERE a.username = 'james';
 INSERT INTO MatchResults SELECT 11, p1.id, p2.id, 'white wins'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'tina' AND p2.username = 'umar';
 
-INSERT INTO Matches SELECT 12, STR_TO_DATE('06-02-2025', '%d-%m-%Y'), 3, 1, 2, 4, 6, a.id, NULL
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 12, STR_TO_DATE('06-02-2025', '%d-%m-%Y'), 3, 1, 2, 4, 6, a.id, NULL
 FROM Arbiters a WHERE a.username = 'lucy';
 INSERT INTO MatchResults SELECT 12, p1.id, p2.id, 'white wins'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'umar' AND p2.username = 'vera';
 
-INSERT INTO Matches SELECT 13, STR_TO_DATE('07-02-2025', '%d-%m-%Y'), 1, 2, 1, 7, 9, a.id, NULL
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 13, STR_TO_DATE('07-02-2025', '%d-%m-%Y'), 1, 2, 1, 7, 9, a.id, NULL
 FROM Arbiters a WHERE a.username = 'sara';
 INSERT INTO MatchResults SELECT 13, p1.id, p2.id, 'black wins'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'vera' AND p2.username = 'will';
 
-INSERT INTO Matches SELECT 14, STR_TO_DATE('07-02-2025', '%d-%m-%Y'), 3, 2, 2, 8, 10, a.id, '2,6'
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 14, STR_TO_DATE('07-02-2025', '%d-%m-%Y'), 3, 2, 2, 8, 10, a.id, '2,6'
 FROM Arbiters a WHERE a.username = 'mohamed';
 INSERT INTO MatchResults SELECT 14, p1.id, p2.id, 'draw'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'will' AND p2.username = 'xena';
 
-INSERT INTO Matches SELECT 15, STR_TO_DATE('08-02-2025', '%d-%m-%Y'), 1, 3, 1, 1, 4, a.id, '7,1'
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 15, STR_TO_DATE('08-02-2025', '%d-%m-%Y'), 1, 3, 1, 1, 4, a.id, '7,1'
 FROM Arbiters a WHERE a.username = 'erin';
 INSERT INTO MatchResults SELECT 15, p1.id, p2.id, 'draw'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'xena' AND p2.username = 'yusuff';
 
-INSERT INTO Matches SELECT 16, STR_TO_DATE('08-02-2025', '%d-%m-%Y'), 3, 3, 2, 2, 5, a.id, '6,3'
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 16, STR_TO_DATE('08-02-2025', '%d-%m-%Y'), 3, 3, 2, 2, 5, a.id, '6,3'
 FROM Arbiters a WHERE a.username = 'ana';
 INSERT INTO MatchResults SELECT 16, p1.id, p2.id, 'white wins'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'yusuff' AND p2.username = 'zoe';
 
-INSERT INTO Matches SELECT 17, STR_TO_DATE('09-02-2025', '%d-%m-%Y'), 1, 4, 1, 3, 6, a.id, NULL
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 17, STR_TO_DATE('09-02-2025', '%d-%m-%Y'), 1, 4, 1, 3, 6, a.id, NULL
 FROM Arbiters a WHERE a.username = 'james';
 INSERT INTO MatchResults SELECT 17, p1.id, p2.id, 'black wins'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'zoe' AND p2.username = 'hakan';
 
-INSERT INTO Matches SELECT 18, STR_TO_DATE('09-02-2025', '%d-%m-%Y'), 3, 4, 2, 7, 10, a.id, '4,9'
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 18, STR_TO_DATE('09-02-2025', '%d-%m-%Y'), 3, 4, 2, 7, 10, a.id, '4,9'
 FROM Arbiters a WHERE a.username = 'mark';
 INSERT INTO MatchResults SELECT 18, p1.id, p2.id, 'black wins'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'hakan' AND p2.username = 'julia';
 
-INSERT INTO Matches SELECT 19, STR_TO_DATE('10-02-2025', '%d-%m-%Y'), 1, 5, 1, 5, 8, a.id, '9,7'
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 19, STR_TO_DATE('10-02-2025', '%d-%m-%Y'), 1, 5, 1, 5, 8, a.id, '9,7'
 FROM Arbiters a WHERE a.username = 'lucy';
 INSERT INTO MatchResults SELECT 19, p1.id, p2.id, 'black wins'
 FROM Players p1 JOIN Players p2
 WHERE p1.username = 'julia' AND p2.username = 'mehmet';
 
-INSERT INTO Matches SELECT 20, STR_TO_DATE('10-02-2025', '%d-%m-%Y'), 3, 5, 2, 6, 9, a.id, '7,4'
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 20, STR_TO_DATE('10-02-2025', '%d-%m-%Y'), 3, 5, 2, 6, 9, a.id, '7,4'
 FROM Arbiters a WHERE a.username = 'ahmet';
 INSERT INTO MatchResults SELECT 20, p1.id, p2.id, 'white wins'
 FROM Players p1 JOIN Players p2

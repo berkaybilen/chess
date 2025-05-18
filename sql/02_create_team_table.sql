@@ -1,14 +1,14 @@
 -- SPONSORS
 CREATE TABLE Sponsor (
-    id    INT           NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    name  VARCHAR(50)   NOT NULL UNIQUE,
+    id    INT           AUTO_INCREMENT PRIMARY KEY,
+    name  VARCHAR(50)   NOT NULL UNIQUE
 );
 
 -- TEAMS
 CREATE TABLE Team (
     id     INT          NOT NULL AUTO_INCREMENT,
     name   VARCHAR(50)  NOT NULL,
-    sponsor_id  INT          NOT NULL,
+    sponsor_id  INT,
     PRIMARY KEY (id),
     UNIQUE (name),
 
@@ -40,6 +40,6 @@ CREATE TABLE Plays_in (
 
     FOREIGN KEY (player_user_id) REFERENCES Players(id)
         ON UPDATE CASCADE ON DELETE CASCADE,
-    FOREIGN KEY (teamID) REFERENCES Team(id)
+    FOREIGN KEY (team_id) REFERENCES Team(id)
         ON UPDATE CASCADE ON DELETE CASCADE
 );
