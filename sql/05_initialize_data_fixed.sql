@@ -8,6 +8,8 @@ SET FOREIGN_KEY_CHECKS = 0;
 TRUNCATE TABLE Users;
 TRUNCATE TABLE Title;
 TRUNCATE TABLE Certification;
+TRUNCATE TABLE CertificationArbiter;
+TRUNCATE TABLE CertificationCoach;
 TRUNCATE TABLE Sponsor;
 TRUNCATE TABLE Hall;
 TRUNCATE TABLE HallTable;
@@ -15,14 +17,13 @@ TRUNCATE TABLE Team;
 TRUNCATE TABLE Players;
 TRUNCATE TABLE Coaches;
 TRUNCATE TABLE Arbiters;
-TRUNCATE TABLE CoachCertifications;
-TRUNCATE TABLE ArbiterCertifications;
 TRUNCATE TABLE Plays_in;
 TRUNCATE TABLE CoachTeamAgreement;
 TRUNCATE TABLE Matches;
+TRUNCATE TABLE MatchResults;
 
 -- Populate Title table
-INSERT INTO Title (titleID, titleName) VALUES
+INSERT INTO Title (id, name) VALUES
 (1, 'Grandmaster'),
 (2, 'International Master'),
 (3, 'FIDE Master'),
@@ -30,17 +31,18 @@ INSERT INTO Title (titleID, titleName) VALUES
 (5, 'National Master');
 
 -- Populate Certification table
-INSERT INTO Certification (certificationID, certName) VALUES
+INSERT INTO Certification (id, name) VALUES
 (1, 'FIDE Certified'),
 (2, 'International Arbiter'),
 (3, 'National Arbiter'),
 (4, 'Regional Certification'),
 (5, 'Local Certification'),
 (6, 'Club Level'),
-(7, 'National Level');
+(7, 'National Level'),
+(8, 'Regional Certified'),
 
 -- Populate Sponsor table
-INSERT INTO Sponsor (sponsorID, sponsorName) VALUES
+INSERT INTO Sponsor (id, name) VALUES
 (100, 'ChessVision'),
 (101, 'Grandmaster Corp'),
 (102, 'Queen''s Gambit Ltd.'),
@@ -52,7 +54,7 @@ INSERT INTO Sponsor (sponsorID, sponsorName) VALUES
 (108, 'King''s Arena Foundation');
 
 -- Populate Hall table
-INSERT INTO Hall (hallID, hallName, hallCountry, hallCapacity) VALUES
+INSERT INTO Hall (id, name, country, capacity) VALUES
 (1, 'Grandmaster Arena', 'USA', 10),
 (2, 'Royal Chess Hall', 'UK', 8),
 (3, 'FIDE Dome', 'Germany', 12),
@@ -65,7 +67,7 @@ INSERT INTO Hall (hallID, hallName, hallCountry, hallCapacity) VALUES
 (10, 'Opening Hall', 'Japan', 5);
 
 -- Populate HallTable table
-INSERT INTO HallTable (hallID, tableNo) VALUES
+INSERT INTO HallTable (hall_id, table_no) VALUES
 (1, 1), (1, 2), (1, 3),
 (2, 4), (2, 5),
 (3, 6), (3, 7), (3, 8),
@@ -78,7 +80,7 @@ INSERT INTO HallTable (hallID, tableNo) VALUES
 (10, 16);
 
 -- Populate Team table
-INSERT INTO Team (teamID, teamName, sponsorID) VALUES
+INSERT INTO Team (id, name, sponsor_id) VALUES
 (1, 'Knights', 100),
 (2, 'Rooks', 101),
 (3, 'Bishops', 102),
@@ -176,156 +178,535 @@ INSERT INTO Users (username, password, role) VALUES
 ('mohamed', 'mpass', 'arbiter');
 
 -- Insert into Players table
-INSERT INTO Players (user_id, username, name, surname, nationality, date_of_birth, fide_id, elo_rating, title_id)
-SELECT user_id, username, 'Alice', 'Smith', 'USA', STR_TO_DATE('10-05-2000', '%d-%m-%Y'), 'FIDE001', 2200, 1 
-FROM Users WHERE username = 'alice';
+INSERT INTO Players SELECT id, username, 'Alice', 'Smith', 'USA', STR_TO_DATE('10-05-2000', '%d-%m-%Y'), 'FIDE001', 2200, 1 FROM Users WHERE username = 'alice';
+INSERT INTO Players SELECT id, username, 'Bob', 'Jones', 'UK', STR_TO_DATE('21-07-1998', '%d-%m-%Y'), 'FIDE002', 2100, 5 FROM Users WHERE username = 'bob1';
+INSERT INTO Players SELECT id, username, 'Clara', 'Kim', 'KOR', STR_TO_DATE('15-03-2001', '%d-%m-%Y'), 'FIDE003', 2300, 2 FROM Users WHERE username = 'clara';
+INSERT INTO Players SELECT id, username, 'David', 'Chen', 'CAN', STR_TO_DATE('02-12-1997', '%d-%m-%Y'), 'FIDE004', 2050, 3 FROM Users WHERE username = 'david';
+INSERT INTO Players SELECT id, username, 'Emma', 'Rossi', 'ITA', STR_TO_DATE('19-06-1999', '%d-%m-%Y'), 'FIDE005', 2250, 2 FROM Users WHERE username = 'emma';
+INSERT INTO Players SELECT id, username, 'Felix', 'Novak', 'GER', STR_TO_DATE('04-09-2002', '%d-%m-%Y'), 'FIDE006', 2180, 4 FROM Users WHERE username = 'felix';
+INSERT INTO Players SELECT id, username, 'Grace', 'Ali', 'TUR', STR_TO_DATE('12-08-2000', '%d-%m-%Y'), 'FIDE007', 2320, 1 FROM Users WHERE username = 'grace';
+INSERT INTO Players SELECT id, username, 'Henry', 'Patel', 'IND', STR_TO_DATE('25-04-1998', '%d-%m-%Y'), 'FIDE008', 2150, 3 FROM Users WHERE username = 'henry';
+INSERT INTO Players SELECT id, username, 'Isabel', 'Lopez', 'MEX', STR_TO_DATE('17-02-2001', '%d-%m-%Y'), 'FIDE009', 2240, 3 FROM Users WHERE username = 'isabel';
+INSERT INTO Players SELECT id, username, 'Jack', 'Brown', 'USA', STR_TO_DATE('30-11-1997', '%d-%m-%Y'), 'FIDE010', 2000, 4 FROM Users WHERE username = 'jack';
+INSERT INTO Players SELECT id, username, 'Kara', 'Singh', 'IND', STR_TO_DATE('07-01-2003', '%d-%m-%Y'), 'FIDE011', 2350, 5 FROM Users WHERE username = 'kara';
+INSERT INTO Players SELECT id, username, 'Liam', 'Müller', 'GER', STR_TO_DATE('23-05-1999', '%d-%m-%Y'), 'FIDE012', 2200, 2 FROM Users WHERE username = 'liam';
+INSERT INTO Players SELECT id, username, 'Mia', 'Wang', 'CHN', STR_TO_DATE('14-12-2002', '%d-%m-%Y'), 'FIDE013', 2125, 4 FROM Users WHERE username = 'mia';
+INSERT INTO Players SELECT id, username, 'Noah', 'Evans', 'CAN', STR_TO_DATE('08-08-1996', '%d-%m-%Y'), 'FIDE014', 2400, 1 FROM Users WHERE username = 'noah';
+INSERT INTO Players SELECT id, username, 'Olivia', 'Taylor', 'UK', STR_TO_DATE('03-06-2001', '%d-%m-%Y'), 'FIDE015', 2280, 2 FROM Users WHERE username = 'olivia';
+INSERT INTO Players SELECT id, username, 'Peter', 'Dubois', 'FRA', STR_TO_DATE('11-10-2000', '%d-%m-%Y'), 'FIDE016', 2140, 3 FROM Users WHERE username = 'peter';
+INSERT INTO Players SELECT id, username, 'Quinn', 'Ma', 'CHN', STR_TO_DATE('16-09-1998', '%d-%m-%Y'), 'FIDE017', 2210, 4 FROM Users WHERE username = 'quinn';
+INSERT INTO Players SELECT id, username, 'Rachel', 'Silva', 'BRA', STR_TO_DATE('06-07-1999', '%d-%m-%Y'), 'FIDE018', 2290, 2 FROM Users WHERE username = 'rachel';
+INSERT INTO Players SELECT id, username, 'Sam', 'O’Neill', 'IRE', STR_TO_DATE('29-01-2002', '%d-%m-%Y'), 'FIDE019', 2100, 3 FROM Users WHERE username = 'sam';
+INSERT INTO Players SELECT id, username, 'Tina', 'Zhou', 'KOR', STR_TO_DATE('13-03-2003', '%d-%m-%Y'), 'FIDE020', 2230, 3 FROM Users WHERE username = 'tina';
+INSERT INTO Players SELECT id, username, 'Umar', 'Haddad', 'UAE', STR_TO_DATE('01-11-1997', '%d-%m-%Y'), 'FIDE021', 2165, 4 FROM Users WHERE username = 'umar';
+INSERT INTO Players SELECT id, username, 'Vera', 'Nowak', 'POL', STR_TO_DATE('22-04-2001', '%d-%m-%Y'), 'FIDE022', 2260, 2 FROM Users WHERE username = 'vera';
+INSERT INTO Players SELECT id, username, 'Will', 'Johnson', 'AUS', STR_TO_DATE('18-06-2000', '%d-%m-%Y'), 'FIDE023', 2195, 3 FROM Users WHERE username = 'will';
+INSERT INTO Players SELECT id, username, 'Xena', 'Popov', 'RUS', STR_TO_DATE('09-02-1998', '%d-%m-%Y'), 'FIDE024', 2330, 1 FROM Users WHERE username = 'xena';
+INSERT INTO Players SELECT id, username, 'Yusuf', 'Demir', 'TUR', STR_TO_DATE('26-12-1999', '%d-%m-%Y'), 'FIDE025', 2170, 4 FROM Users WHERE username = 'yusuff';
+INSERT INTO Players SELECT id, username, 'Zoe', 'Tanaka', 'JPN', STR_TO_DATE('05-05-2001', '%d-%m-%Y'), 'FIDE026', 2220, 2 FROM Users WHERE username = 'zoe';
+INSERT INTO Players SELECT id, username, 'Hakan', 'Şimşek', 'TUR', STR_TO_DATE('14-10-1997', '%d-%m-%Y'), 'FIDE027', 2110, 4 FROM Users WHERE username = 'hakan';
+INSERT INTO Players SELECT id, username, 'Julia', 'Nilsen', 'SWE', STR_TO_DATE('02-03-2002', '%d-%m-%Y'), 'FIDE028', 2300, 1 FROM Users WHERE username = 'julia';
+INSERT INTO Players SELECT id, username, 'Mehmet', 'Yıldız', 'TUR', STR_TO_DATE('31-07-1998', '%d-%m-%Y'), 'FIDE029', 2080, 3 FROM Users WHERE username = 'mehmet';
+INSERT INTO Players SELECT id, username, 'Elena', 'Kuznetsova', 'RUS', STR_TO_DATE('24-09-2000', '%d-%m-%Y'), 'FIDE030', 2345, 1 FROM Users WHERE username = 'elena';
+INSERT INTO Players SELECT id, username, 'Nina', 'Martinez', 'ESP', STR_TO_DATE('12-07-2001', '%d-%m-%Y'), 'FIDE031', 2150, 3 FROM Users WHERE username = 'nina';
+INSERT INTO Players SELECT id, username, 'Louis', 'Schneider', 'GER', STR_TO_DATE('08-11-1998', '%d-%m-%Y'), 'FIDE032', 2100, 4 FROM Users WHERE username = 'louis';
+INSERT INTO Players SELECT id, username, 'Sofia', 'Russo', 'ITA', STR_TO_DATE('17-02-2000', '%d-%m-%Y'), 'FIDE033', 2250, 2 FROM Users WHERE username = 'sofia';
+INSERT INTO Players SELECT id, username, 'Ryan', 'Edwards', 'USA', STR_TO_DATE('02-09-1997', '%d-%m-%Y'), 'FIDE034', 2170, 3 FROM Users WHERE username = 'ryan';
+INSERT INTO Players SELECT id, username, 'Claire', 'Dupont', 'FRA', STR_TO_DATE('11-01-2002', '%d-%m-%Y'), 'FIDE035', 2225, 2 FROM Users WHERE username = 'claire';
+INSERT INTO Players SELECT id, username, 'Jacob', 'Green', 'AUS', STR_TO_DATE('20-10-1999', '%d-%m-%Y'), 'FIDE036', 2120, 4 FROM Users WHERE username = 'jacob';
+INSERT INTO Players SELECT id, username, 'Ava', 'Kowalski', 'POL', STR_TO_DATE('04-05-2003', '%d-%m-%Y'), 'FIDE037', 2300, 2 FROM Users WHERE username = 'ava';
+INSERT INTO Players SELECT id, username, 'Ethan', 'Yamamoto', 'JPN', STR_TO_DATE('25-03-1998', '%d-%m-%Y'), 'FIDE038', 2190, 3 FROM Users WHERE username = 'ethan';
+INSERT INTO Players SELECT id, username, 'Isabella', 'Moretti', 'ITA', STR_TO_DATE('19-08-2001', '%d-%m-%Y'), 'FIDE039', 2240, 2 FROM Users WHERE username = 'isabella';
+INSERT INTO Players SELECT id, username, 'Logan', 'O''Connor', 'IRL', STR_TO_DATE('14-04-1997', '%d-%m-%Y'), 'FIDE040', 2115, 4 FROM Users WHERE username = 'logan';
+INSERT INTO Players SELECT id, username, 'Sophia', 'Weber', 'GER', STR_TO_DATE('01-06-2000', '%d-%m-%Y'), 'FIDE041', 2280, 2 FROM Users WHERE username = 'sophia';
+INSERT INTO Players SELECT id, username, 'Lucas', 'Novak', 'CZE', STR_TO_DATE('30-12-1999', '%d-%m-%Y'), 'FIDE042', 2145, 4 FROM Users WHERE username = 'lucas';
+INSERT INTO Players SELECT id, username, 'Harper', 'Clarke', 'UK', STR_TO_DATE('06-07-2002', '%d-%m-%Y'), 'FIDE043', 2200, 2 FROM Users WHERE username = 'harper';
+INSERT INTO Players SELECT id, username, 'James', 'Silva', 'BRA', STR_TO_DATE('21-03-1998', '%d-%m-%Y'), 'FIDE044', 2155, 3 FROM Users WHERE username = 'james';
+INSERT INTO Players SELECT id, username, 'Amelia', 'Zhang', 'CHN', STR_TO_DATE('09-09-2001', '%d-%m-%Y'), 'FIDE045', 2275, 2 FROM Users WHERE username = 'amelia';
+INSERT INTO Players SELECT id, username, 'Benjamin', 'Fischer', 'GER', STR_TO_DATE('27-01-1997', '%d-%m-%Y'), 'FIDE046', 2095, 4 FROM Users WHERE username = 'benjamin';
+INSERT INTO Players SELECT id, username, 'Ella', 'Svensson', 'SWE', STR_TO_DATE('03-11-2000', '%d-%m-%Y'), 'FIDE047', 2235, 2 FROM Users WHERE username = 'ella';
+INSERT INTO Players SELECT id, username, 'Alex', 'Dimitrov', 'BUL', STR_TO_DATE('22-05-1999', '%d-%m-%Y'), 'FIDE048', 2180, 3 FROM Users WHERE username = 'alex';
+INSERT INTO Players SELECT id, username, 'Lily', 'Nakamura', 'USA', STR_TO_DATE('12-02-2003', '%d-%m-%Y'), 'FIDE049', 2310, 2 FROM Users WHERE username = 'lily';
 
--- Insert into Players table (continued)
-INSERT INTO Players (user_id, username, name, surname, nationality, date_of_birth, fide_id, elo_rating, title_id)
-SELECT user_id, username, 'Bob', 'Jones', 'UK', STR_TO_DATE('21-07-1998', '%d-%m-%Y'), 'FIDE002', 2100, 5
-FROM Users WHERE username = 'bob1';
+-- Insert into Coaches (after corresponding Users exist)
 
--- Continue with all other players...
--- (Adding all players from the CSV file)
-
--- Insert into Coaches table
-INSERT INTO Coaches (user_id, username, name, surname, nationality, team_id, contract_start, contract_finish)
-SELECT user_id, username, 'Carol', 'White', 'Canada', 1, STR_TO_DATE('01-01-2023', '%d-%m-%Y'), STR_TO_DATE('01-01-2026', '%d-%m-%Y')
+INSERT INTO Coaches (id, username, name, surname, nationality)
+SELECT id, username, 'Carol', 'White', 'Canada'
 FROM Users WHERE username = 'carol';
 
--- Continue with all other coaches...
+INSERT INTO Coaches (id, username, name, surname, nationality)
+SELECT id, username, 'David', 'Brown', 'USA'
+FROM Users WHERE username = 'david_b';
+
+INSERT INTO Coaches (id, username, name, surname, nationality)
+SELECT id, username, 'Emma', 'Green', 'UK'
+FROM Users WHERE username = 'emma_green';
+
+INSERT INTO Coaches (id, username, name, surname, nationality)
+SELECT id, username, 'Fatih', 'Ceylan', 'Turkey'
+FROM Users WHERE username = 'fatih';
+
+INSERT INTO Coaches (id, username, name, surname, nationality)
+SELECT id, username, 'Hana', 'Yamada', 'Japan'
+FROM Users WHERE username = 'hana';
+
+INSERT INTO Coaches (id, username, name, surname, nationality)
+SELECT id, username, 'Lucas', 'Müller', 'Germany'
+FROM Users WHERE username = 'lucaas';
+
+INSERT INTO Coaches (id, username, name, surname, nationality)
+SELECT id, username, 'Mia', 'Rossi', 'Italy'
+FROM Users WHERE username = 'mia_rose';
+
+INSERT INTO Coaches (id, username, name, surname, nationality)
+SELECT id, username, 'Onur', 'Kaya', 'Turkey'
+FROM Users WHERE username = 'onur';
+
+INSERT INTO Coaches (id, username, name, surname, nationality)
+SELECT id, username, 'Sofia', 'López', 'Spain'
+FROM Users WHERE username = 'sofia_lop';
+
+INSERT INTO Coaches (id, username, name, surname, nationality)
+SELECT id, username, 'Yusuf', 'Arslan', 'Turkey'
+FROM Users WHERE username = 'arslan_yusuf';
+
 
 -- Insert into Arbiters table
-INSERT INTO Arbiters (user_id, username, name, surname, nationality, experience_level)
-SELECT user_id, username, 'Erin', 'Gray', 'Germany', 'Advanced'
+
+INSERT INTO Arbiters (id, username, name, surname, nationality, experience_level)
+SELECT id, username, 'Erin', 'Gray', 'Germany', 'Advanced'
 FROM Users WHERE username = 'erin';
 
--- Continue with all other arbiters...
+INSERT INTO Arbiters (id, username, name, surname, nationality, experience_level)
+SELECT id, username, 'Mark', 'Blake', 'USA', 'Intermediate'
+FROM Users WHERE username = 'mark';
 
--- Insert into CoachCertifications table
-INSERT INTO CoachCertifications (coach_username, certification) VALUES
-('carol', 'FIDE Certified'),
-('carol', 'National Level'),
-('david_b', 'National Level'),
-('emma_green', 'FIDE Certified'),
-('fatih', 'National Level'),
-('hana', 'Regional Certified'),
-('lucaas', 'Club Level'),
-('lucaas', 'Regional Certified'),
-('mia_rose', 'FIDE Certified'),
-('onur', 'National Level'),
-('sofia_lop', 'Regional Certified'),
-('arslan_yusuf', 'Club Level'),
-('arslan_yusuf', 'National Level');
+INSERT INTO Arbiters (id, username, name, surname, nationality, experience_level)
+SELECT id, username, 'Lucy', 'Wang', 'China', 'Expert'
+FROM Users WHERE username = 'lucy';
 
--- Insert into ArbiterCertifications table
-INSERT INTO ArbiterCertifications (username, certification) VALUES
-('erin', 'FIDE Certified'),
-('mark', 'National Arbiter'),
-('lucy', 'International Arbiter'),
-('ahmet', 'Local Certification'),
-('ana', 'FIDE Certified'),
-('james', 'Regional Certification'),
-('sara', 'International Arbiter'),
-('mohamed', 'National Arbiter');
+INSERT INTO Arbiters (id, username, name, surname, nationality, experience_level)
+SELECT id, username, 'Ahmet', 'Yılmaz', 'Turkey', 'Beginner'
+FROM Users WHERE username = 'ahmet';
+
+INSERT INTO Arbiters (id, username, name, surname, nationality, experience_level)
+SELECT id, username, 'Ana', 'Costa', 'Brazil', 'Advanced'
+FROM Users WHERE username = 'ana';
+
+INSERT INTO Arbiters (id, username, name, surname, nationality, experience_level)
+SELECT id, username, 'James', 'Taylor', 'UK', 'Intermediate'
+FROM Users WHERE username = 'james';
+
+INSERT INTO Arbiters (id, username, name, surname, nationality, experience_level)
+SELECT id, username, 'Sara', 'Kim', 'South Korea', 'Expert'
+FROM Users WHERE username = 'sara';
+
+INSERT INTO Arbiters (id, username, name, surname, nationality, experience_level)
+SELECT id, username, 'Mohamed', 'Farouk', 'Egypt', 'Advanced'
+FROM Users WHERE username = 'mohamed';
+
+-- Insert into CertificationArbiter using Arbiters.username
+
+INSERT INTO CertificationArbiter (certification_id, arbiter_id)
+SELECT c.id, a.id
+FROM Certification c
+JOIN Arbiters a ON a.username = 'erin'
+WHERE c.name = 'FIDE Certified';
+
+INSERT INTO CertificationArbiter (certification_id, arbiter_id)
+SELECT c.id, a.id
+FROM Certification c
+JOIN Arbiters a ON a.username = 'mark'
+WHERE c.name = 'National Arbiter';
+
+INSERT INTO CertificationArbiter (certification_id, arbiter_id)
+SELECT c.id, a.id
+FROM Certification c
+JOIN Arbiters a ON a.username = 'lucy'
+WHERE c.name = 'International Arbiter';
+
+INSERT INTO CertificationArbiter (certification_id, arbiter_id)
+SELECT c.id, a.id
+FROM Certification c
+JOIN Arbiters a ON a.username = 'ahmet'
+WHERE c.name = 'Local Certification';
+
+INSERT INTO CertificationArbiter (certification_id, arbiter_id)
+SELECT c.id, a.id
+FROM Certification c
+JOIN Arbiters a ON a.username = 'ana'
+WHERE c.name = 'FIDE Certified';
+
+INSERT INTO CertificationArbiter (certification_id, arbiter_id)
+SELECT c.id, a.id
+FROM Certification c
+JOIN Arbiters a ON a.username = 'james'
+WHERE c.name = 'Regional Certification';
+
+INSERT INTO CertificationArbiter (certification_id, arbiter_id)
+SELECT c.id, a.id
+FROM Certification c
+JOIN Arbiters a ON a.username = 'sara'
+WHERE c.name = 'International Arbiter';
+
+INSERT INTO CertificationArbiter (certification_id, arbiter_id)
+SELECT c.id, a.id
+FROM Certification c
+JOIN Arbiters a ON a.username = 'mohamed'
+WHERE c.name = 'National Arbiter';
+
+-- Insert into CertificationCoach using Coaches.username
+
+INSERT INTO CertificationCoach (certification_id, coach_id)
+SELECT c.id, ch.id
+FROM Certification c
+JOIN Coaches ch ON ch.username = 'carol'
+WHERE c.name = 'FIDE Certified';
+
+INSERT INTO CertificationCoach (certification_id, coach_id)
+SELECT c.id, ch.id
+FROM Certification c
+JOIN Coaches ch ON ch.username = 'carol'
+WHERE c.name = 'National Level';
+
+INSERT INTO CertificationCoach (certification_id, coach_id)
+SELECT c.id, ch.id
+FROM Certification c
+JOIN Coaches ch ON ch.username = 'david_b'
+WHERE c.name = 'National Level';
+
+INSERT INTO CertificationCoach (certification_id, coach_id)
+SELECT c.id, ch.id
+FROM Certification c
+JOIN Coaches ch ON ch.username = 'emma_green'
+WHERE c.name = 'FIDE Certified';
+
+INSERT INTO CertificationCoach (certification_id, coach_id)
+SELECT c.id, ch.id
+FROM Certification c
+JOIN Coaches ch ON ch.username = 'fatih'
+WHERE c.name = 'National Level';
+
+INSERT INTO CertificationCoach (certification_id, coach_id)
+SELECT c.id, ch.id
+FROM Certification c
+JOIN Coaches ch ON ch.username = 'hana'
+WHERE c.name = 'Regional Certified';
+
+INSERT INTO CertificationCoach (certification_id, coach_id)
+SELECT c.id, ch.id
+FROM Certification c
+JOIN Coaches ch ON ch.username = 'lucaas'
+WHERE c.name = 'Club Level';
+
+INSERT INTO CertificationCoach (certification_id, coach_id)
+SELECT c.id, ch.id
+FROM Certification c
+JOIN Coaches ch ON ch.username = 'lucaas'
+WHERE c.name = 'Regional Certified';
+
+INSERT INTO CertificationCoach (certification_id, coach_id)
+SELECT c.id, ch.id
+FROM Certification c
+JOIN Coaches ch ON ch.username = 'mia_rose'
+WHERE c.name = 'FIDE Certified';
+
+INSERT INTO CertificationCoach (certification_id, coach_id)
+SELECT c.id, ch.id
+FROM Certification c
+JOIN Coaches ch ON ch.username = 'onur'
+WHERE c.name = 'National Level';
+
+INSERT INTO CertificationCoach (certification_id, coach_id)
+SELECT c.id, ch.id
+FROM Certification c
+JOIN Coaches ch ON ch.username = 'sofia_lop'
+WHERE c.name = 'Regional Certified';
+
+INSERT INTO CertificationCoach (certification_id, coach_id)
+SELECT c.id, ch.id
+FROM Certification c
+JOIN Coaches ch ON ch.username = 'arslan_yusuf'
+WHERE c.name = 'Club Level';
+
+INSERT INTO CertificationCoach (certification_id, coach_id)
+SELECT c.id, ch.id
+FROM Certification c
+JOIN Coaches ch ON ch.username = 'arslan_yusuf'
+WHERE c.name = 'National Level';
+
 
 -- Insert into Plays_in table
-INSERT INTO Plays_in (username, team_id) VALUES
-('alice', 1),
-('bob1', 2),
-('clara', 3),
-('david', 4),
-('emma', 5),
-('felix', 6),
-('grace', 7),
-('henry', 8),
-('isabel', 9),
-('jack', 10),
-('kara', 1),
-('liam', 2),
-('mia', 3),
-('noah', 4),
-('olivia', 5),
-('peter', 6),
-('quinn', 7),
-('rachel', 8),
-('sam', 9),
-('tina', 10),
-('umar', 1),
-('vera', 2),
-('will', 3),
-('xena', 4),
-('yusuff', 5),
-('zoe', 6),
-('hakan', 7),
-('julia', 8),
-('mehmet', 9),
-('elena', 10),
-('nina', 1),
-('louis', 2),
-('sofia', 3),
-('ryan', 4),
-('claire', 5),
-('jacob', 6),
-('ava', 7),
-('ethan', 8),
-('isabella', 9),
-('logan', 10),
-('sophia', 1),
-('lucas', 2),
-('harper', 3),
-('james_player', 4),
-('amelia', 5),
-('benjamin', 6),
-('ella', 7),
-('alex', 8),
-('lily', 9);
+-- Insert into Plays_in using Players.username to get player_user_id
 
--- Insert into Matches table
-INSERT INTO Matches (match_id, date, time_slot, hall_id, table_id, team1_id, team2_id, arbiter_username, ratings) VALUES
-(1, STR_TO_DATE('01-02-2025', '%d-%m-%Y'), 1, 1, 1, 1, 2, 'erin', '8,2'),
-(2, STR_TO_DATE('01-02-2025', '%d-%m-%Y'), 3, 1, 2, 3, 4, 'lucy', '7,9'),
-(3, STR_TO_DATE('02-02-2025', '%d-%m-%Y'), 1, 2, 1, 5, 6, 'mark', NULL),
-(4, STR_TO_DATE('02-02-2025', '%d-%m-%Y'), 3, 2, 2, 7, 8, 'erin', '8,5'),
-(5, STR_TO_DATE('03-02-2025', '%d-%m-%Y'), 1, 3, 1, 9, 10, 'lucy', NULL),
-(6, STR_TO_DATE('03-02-2025', '%d-%m-%Y'), 3, 3, 2, 1, 3, 'mohamed', NULL),
-(7, STR_TO_DATE('04-02-2025', '%d-%m-%Y'), 1, 4, 1, 2, 5, 'erin', '4,5'),
-(8, STR_TO_DATE('04-02-2025', '%d-%m-%Y'), 3, 4, 2, 6, 7, 'sara', '3,1'),
-(9, STR_TO_DATE('05-02-2025', '%d-%m-%Y'), 1, 5, 1, 8, 9, 'ana', '7,7'),
-(10, STR_TO_DATE('05-02-2025', '%d-%m-%Y'), 3, 5, 2, 10, 1, 'mark', '6,4'),
-(11, STR_TO_DATE('06-02-2025', '%d-%m-%Y'), 1, 1, 1, 3, 5, 'james', '5,1'),
-(12, STR_TO_DATE('06-02-2025', '%d-%m-%Y'), 3, 1, 2, 4, 6, 'lucy', NULL),
-(13, STR_TO_DATE('07-02-2025', '%d-%m-%Y'), 1, 2, 1, 7, 9, 'sara', NULL),
-(14, STR_TO_DATE('07-02-2025', '%d-%m-%Y'), 3, 2, 2, 8, 10, 'mohamed', '2,6'),
-(15, STR_TO_DATE('08-02-2025', '%d-%m-%Y'), 1, 3, 1, 1, 4, 'erin', '7,1'),
-(16, STR_TO_DATE('08-02-2025', '%d-%m-%Y'), 3, 3, 2, 2, 5, 'ana', '6,3'),
-(17, STR_TO_DATE('09-02-2025', '%d-%m-%Y'), 1, 4, 1, 3, 6, 'james', NULL),
-(18, STR_TO_DATE('09-02-2025', '%d-%m-%Y'), 3, 4, 2, 7, 10, 'mark', '4,9'),
-(19, STR_TO_DATE('10-02-2025', '%d-%m-%Y'), 1, 5, 1, 5, 8, 'lucy', '9,7'),
-(20, STR_TO_DATE('10-02-2025', '%d-%m-%Y'), 3, 5, 2, 6, 9, 'ahmet', '7,4');
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 1 FROM Players WHERE username = 'alice';
 
--- Insert into MatchAssignments table
-INSERT INTO MatchAssignments (match_id, white_player, black_player, result) VALUES
-(1, 'alice', 'bob1', 'draw'),
-(2, 'clara', 'david', 'black wins'),
-(3, 'emma', 'felix', 'black wins'),
-(4, 'grace', 'henry', 'draw'),
-(5, 'isabel', 'jack', 'black wins'),
-(6, 'kara', 'liam', 'white wins'),
-(7, 'mia', 'noah', 'black wins'),
-(8, 'olivia', 'peter', 'white wins'),
-(9, 'quinn', 'rachel', 'black wins'),
-(10, 'sam', 'tina', 'black wins'),
-(11, 'tina', 'umar', 'white wins'),
-(12, 'umar', 'vera', 'white wins'),
-(13, 'vera', 'will', 'black wins'),
-(14, 'will', 'xena', 'draw'),
-(15, 'xena', 'yusuff', 'draw'),
-(16, 'yusuff', 'zoe', 'white wins'),
-(17, 'zoe', 'hakan', 'black wins'),
-(18, 'hakan', 'julia', 'black wins'),
-(19, 'julia', 'mehmet', 'black wins'),
-(20, 'mehmet', 'elena', 'white wins');
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 2 FROM Players WHERE username = 'bob1';
 
--- Re-enable foreign key checks
-SET FOREIGN_KEY_CHECKS = 1; 
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 3 FROM Players WHERE username = 'clara';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 4 FROM Players WHERE username = 'david';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 5 FROM Players WHERE username = 'emma';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 6 FROM Players WHERE username = 'felix';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 7 FROM Players WHERE username = 'grace';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 8 FROM Players WHERE username = 'henry';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 9 FROM Players WHERE username = 'isabel';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 10 FROM Players WHERE username = 'jack';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 1 FROM Players WHERE username = 'kara';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 2 FROM Players WHERE username = 'liam';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 3 FROM Players WHERE username = 'mia';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 4 FROM Players WHERE username = 'noah';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 5 FROM Players WHERE username = 'olivia';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 6 FROM Players WHERE username = 'peter';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 7 FROM Players WHERE username = 'quinn';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 8 FROM Players WHERE username = 'rachel';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 9 FROM Players WHERE username = 'sam';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 10 FROM Players WHERE username = 'tina';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 1 FROM Players WHERE username = 'umar';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 2 FROM Players WHERE username = 'vera';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 3 FROM Players WHERE username = 'will';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 4 FROM Players WHERE username = 'xena';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 5 FROM Players WHERE username = 'yusuff';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 6 FROM Players WHERE username = 'zoe';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 7 FROM Players WHERE username = 'hakan';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 8 FROM Players WHERE username = 'julia';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 9 FROM Players WHERE username = 'mehmet';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 10 FROM Players WHERE username = 'elena';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 1 FROM Players WHERE username = 'nina';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 2 FROM Players WHERE username = 'louis';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 3 FROM Players WHERE username = 'sofia';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 4 FROM Players WHERE username = 'ryan';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 5 FROM Players WHERE username = 'claire';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 6 FROM Players WHERE username = 'jacob';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 7 FROM Players WHERE username = 'ava';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 8 FROM Players WHERE username = 'ethan';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 9 FROM Players WHERE username = 'isabella';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 10 FROM Players WHERE username = 'logan';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 1 FROM Players WHERE username = 'sophia';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 2 FROM Players WHERE username = 'lucas';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 3 FROM Players WHERE username = 'harper';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 4 FROM Players WHERE username = 'james_player';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 5 FROM Players WHERE username = 'amelia';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 6 FROM Players WHERE username = 'benjamin';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 7 FROM Players WHERE username = 'ella';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 8 FROM Players WHERE username = 'alex';
+
+INSERT INTO Plays_in (player_user_id, team_id)
+SELECT id, 9 FROM Players WHERE username = 'lily';
+
+
+-- Insert into Matches and MatchResults tables
+-- MATCHES INSERT
+INSERT INTO Matches (id, date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id, ratings)
+SELECT 1, STR_TO_DATE('01-02-2025', '%d-%m-%Y'), 1, 1, 1, 1, 2, a.id, '8,2'
+FROM Arbiters a WHERE a.username = 'erin';
+INSERT INTO MatchResults (id, white_player_id, black_player_id, result)
+SELECT 1, p1.id, p2.id, 'draw'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'alice' AND p2.username = 'bob1';
+
+INSERT INTO Matches SELECT 2, STR_TO_DATE('01-02-2025', '%d-%m-%Y'), 3, 1, 2, 3, 4, a.id, '7,9'
+FROM Arbiters a WHERE a.username = 'lucy';
+INSERT INTO MatchResults SELECT 2, p1.id, p2.id, 'black wins'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'clara' AND p2.username = 'david';
+
+INSERT INTO Matches SELECT 3, STR_TO_DATE('02-02-2025', '%d-%m-%Y'), 1, 2, 1, 5, 6, a.id, NULL
+FROM Arbiters a WHERE a.username = 'mark';
+INSERT INTO MatchResults SELECT 3, p1.id, p2.id, 'black wins'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'emma' AND p2.username = 'felix';
+
+INSERT INTO Matches SELECT 4, STR_TO_DATE('02-02-2025', '%d-%m-%Y'), 3, 2, 2, 7, 8, a.id, '8,5'
+FROM Arbiters a WHERE a.username = 'erin';
+INSERT INTO MatchResults SELECT 4, p1.id, p2.id, 'draw'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'grace' AND p2.username = 'henry';
+
+INSERT INTO Matches SELECT 5, STR_TO_DATE('03-02-2025', '%d-%m-%Y'), 1, 3, 1, 9, 10, a.id, NULL
+FROM Arbiters a WHERE a.username = 'lucy';
+INSERT INTO MatchResults SELECT 5, p1.id, p2.id, 'black wins'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'isabel' AND p2.username = 'jack';
+
+INSERT INTO Matches SELECT 6, STR_TO_DATE('03-02-2025', '%d-%m-%Y'), 3, 3, 2, 1, 3, a.id, NULL
+FROM Arbiters a WHERE a.username = 'mohamed';
+INSERT INTO MatchResults SELECT 6, p1.id, p2.id, 'white wins'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'kara' AND p2.username = 'liam';
+
+INSERT INTO Matches SELECT 7, STR_TO_DATE('04-02-2025', '%d-%m-%Y'), 1, 4, 1, 2, 5, a.id, '4,5'
+FROM Arbiters a WHERE a.username = 'erin';
+INSERT INTO MatchResults SELECT 7, p1.id, p2.id, 'black wins'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'mia' AND p2.username = 'noah';
+
+INSERT INTO Matches SELECT 8, STR_TO_DATE('04-02-2025', '%d-%m-%Y'), 3, 4, 2, 6, 7, a.id, '3,1'
+FROM Arbiters a WHERE a.username = 'sara';
+INSERT INTO MatchResults SELECT 8, p1.id, p2.id, 'white wins'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'olivia' AND p2.username = 'peter';
+
+INSERT INTO Matches SELECT 9, STR_TO_DATE('05-02-2025', '%d-%m-%Y'), 1, 5, 1, 8, 9, a.id, '7,7'
+FROM Arbiters a WHERE a.username = 'ana';
+INSERT INTO MatchResults SELECT 9, p1.id, p2.id, 'black wins'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'quinn' AND p2.username = 'rachel';
+
+INSERT INTO Matches SELECT 10, STR_TO_DATE('05-02-2025', '%d-%m-%Y'), 3, 5, 2, 10, 1, a.id, '6,4'
+FROM Arbiters a WHERE a.username = 'mark';
+INSERT INTO MatchResults SELECT 10, p1.id, p2.id, 'black wins'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'sam' AND p2.username = 'tina';
+
+INSERT INTO Matches SELECT 11, STR_TO_DATE('06-02-2025', '%d-%m-%Y'), 1, 1, 1, 3, 5, a.id, '5,1'
+FROM Arbiters a WHERE a.username = 'james';
+INSERT INTO MatchResults SELECT 11, p1.id, p2.id, 'white wins'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'tina' AND p2.username = 'umar';
+
+INSERT INTO Matches SELECT 12, STR_TO_DATE('06-02-2025', '%d-%m-%Y'), 3, 1, 2, 4, 6, a.id, NULL
+FROM Arbiters a WHERE a.username = 'lucy';
+INSERT INTO MatchResults SELECT 12, p1.id, p2.id, 'white wins'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'umar' AND p2.username = 'vera';
+
+INSERT INTO Matches SELECT 13, STR_TO_DATE('07-02-2025', '%d-%m-%Y'), 1, 2, 1, 7, 9, a.id, NULL
+FROM Arbiters a WHERE a.username = 'sara';
+INSERT INTO MatchResults SELECT 13, p1.id, p2.id, 'black wins'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'vera' AND p2.username = 'will';
+
+INSERT INTO Matches SELECT 14, STR_TO_DATE('07-02-2025', '%d-%m-%Y'), 3, 2, 2, 8, 10, a.id, '2,6'
+FROM Arbiters a WHERE a.username = 'mohamed';
+INSERT INTO MatchResults SELECT 14, p1.id, p2.id, 'draw'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'will' AND p2.username = 'xena';
+
+INSERT INTO Matches SELECT 15, STR_TO_DATE('08-02-2025', '%d-%m-%Y'), 1, 3, 1, 1, 4, a.id, '7,1'
+FROM Arbiters a WHERE a.username = 'erin';
+INSERT INTO MatchResults SELECT 15, p1.id, p2.id, 'draw'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'xena' AND p2.username = 'yusuff';
+
+INSERT INTO Matches SELECT 16, STR_TO_DATE('08-02-2025', '%d-%m-%Y'), 3, 3, 2, 2, 5, a.id, '6,3'
+FROM Arbiters a WHERE a.username = 'ana';
+INSERT INTO MatchResults SELECT 16, p1.id, p2.id, 'white wins'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'yusuff' AND p2.username = 'zoe';
+
+INSERT INTO Matches SELECT 17, STR_TO_DATE('09-02-2025', '%d-%m-%Y'), 1, 4, 1, 3, 6, a.id, NULL
+FROM Arbiters a WHERE a.username = 'james';
+INSERT INTO MatchResults SELECT 17, p1.id, p2.id, 'black wins'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'zoe' AND p2.username = 'hakan';
+
+INSERT INTO Matches SELECT 18, STR_TO_DATE('09-02-2025', '%d-%m-%Y'), 3, 4, 2, 7, 10, a.id, '4,9'
+FROM Arbiters a WHERE a.username = 'mark';
+INSERT INTO MatchResults SELECT 18, p1.id, p2.id, 'black wins'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'hakan' AND p2.username = 'julia';
+
+INSERT INTO Matches SELECT 19, STR_TO_DATE('10-02-2025', '%d-%m-%Y'), 1, 5, 1, 5, 8, a.id, '9,7'
+FROM Arbiters a WHERE a.username = 'lucy';
+INSERT INTO MatchResults SELECT 19, p1.id, p2.id, 'black wins'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'julia' AND p2.username = 'mehmet';
+
+INSERT INTO Matches SELECT 20, STR_TO_DATE('10-02-2025', '%d-%m-%Y'), 3, 5, 2, 6, 9, a.id, '7,4'
+FROM Arbiters a WHERE a.username = 'ahmet';
+INSERT INTO MatchResults SELECT 20, p1.id, p2.id, 'white wins'
+FROM Players p1 JOIN Players p2
+WHERE p1.username = 'mehmet' AND p2.username = 'elena';
