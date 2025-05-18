@@ -31,6 +31,8 @@ CREATE TABLE MatchResults (
     black_player_id INT NOT NULL,
     result ENUM('draw', 'black wins', 'white wins'),
 
+    FOREIGN KEY (id) REFERENCES Matches(id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (white_player_id) REFERENCES Players(id)
         ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (black_player_id) REFERENCES Players(id)
