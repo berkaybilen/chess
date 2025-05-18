@@ -359,6 +359,69 @@ def create_match(request, username):
         return redirect(f"/dashboard/coach/{username}?error=Invalid data format: {str(e)}")
 
 @csrf_exempt
+@role_required('coach')
+def delete_match(request, username, match_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    # Verify if the user is a coach
+    with get_cursor(dictrows=True) as cur:
+        cur.execute("SELECT * FROM Users WHERE username = %s AND role = 'coach'", (username,))
+        coach = cur.fetchone()
+        
+    if not coach:
+        return JsonResponse({"error": "Unauthorized access"}, status=401)
+    
+    try:
+        with get_cursor(dictrows=True) as cur:
+            # Check if the match exists and belongs to a team coached by this coach (either white or black team)
+            cur.execute("""
+                SELECT m.* FROM Matches m
+                WHERE m.id = %s 
+                AND (
+                    m.team_white IN (
+                        SELECT team_id FROM CoachTeamAgreement 
+                        WHERE coach_user_id = %s 
+                        AND CURRENT_DATE BETWEEN contract_start AND contract_finish
+                    )
+                    OR
+                    m.team_black IN (
+                        SELECT team_id FROM CoachTeamAgreement 
+                        WHERE coach_user_id = %s 
+                        AND CURRENT_DATE BETWEEN contract_start AND contract_finish
+                    )
+                )
+            """, (match_id, coach['id'], coach['id']))
+            
+            match = cur.fetchone()
+            
+            if not match:
+                return redirect(f"/dashboard/coach/{username}?error=You can only delete matches for teams you coach")
+            
+            # Begin transaction
+            cur.execute("START TRANSACTION")
+            
+            # Delete any match results first (cascading deletion)
+            cur.execute("DELETE FROM MatchResults WHERE id = %s", (match_id,))
+            
+            # Delete the match itself
+            cur.execute("DELETE FROM Matches WHERE id = %s", (match_id,))
+            
+            # Commit the transaction
+            cur.execute("COMMIT")
+            
+            # Redirect to the main coach dashboard with success message
+            return redirect(f"/dashboard/coach/{username}?success=Match successfully deleted")
+            
+    except Exception as e:
+        # If anything goes wrong, rollback
+        with get_cursor() as cur:
+            cur.execute("ROLLBACK")
+        
+        print(f"Error deleting match: {str(e)}")
+        return redirect(f"/dashboard/coach/{username}?error={str(e)}")
+
+@csrf_exempt
 @role_required('manager')
 def add_user(request, username):
     # Verify if the user is a manager
