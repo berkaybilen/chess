@@ -12,27 +12,29 @@
             <input type="date" name="date" required>
         </div>
 
+
         <div class="form-group">
             <label>Time Slot (1-7):</label>
             <input type="number" name="start_slot" min="1" max="7" required>
             <small>Each match takes 2 consecutive slots</small>
         </div>
 
+        <!-- Hall selection -->
         <div class="form-group">
             <label>Hall:</label>
-            <select name="hall_id" required>
+            <select name="hall_id" id="hall-select" required>
+                <option value="">-- Select Hall --</option>
                 {% for hall in halls %}
-                <option value="{{ hall.hallID }}">{{ hall.hallName }}</option>
+                <option value="{{ hall.id }}">{{ hall.name }}</option>
                 {% endfor %}
             </select>
         </div>
 
+        <!-- Table selection -->
         <div class="form-group">
             <label>Table:</label>
-            <select name="table_id" required>
-                {% for table in tables %}
-                <option value="{{ table.tableNo }}">Table {{ table.tableNo }}</option>
-                {% endfor %}
+            <select name="table_id" id="table-select" required disabled>
+                <option value="">-- Select Hall First --</option>
             </select>
         </div>
 
@@ -40,7 +42,7 @@
             <label>Your Team:</label>
             <select name="team1_id" required>
                 {% for team in coach_teams %}
-                <option value="{{ team.teamID }}">{{ team.teamName }}</option>
+                <option value="{{ team.id }}">{{ team.name }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -49,7 +51,7 @@
             <label>Opposing Team:</label>
             <select name="team2_id" required>
                 {% for team in all_teams %}
-                <option value="{{ team.teamID }}">{{ team.teamName }}</option>
+                <option value="{{ team.id }}">{{ team.name }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -75,18 +77,19 @@
         <div class="match-card">
             <div class="match-info">
                 <p><strong>Date:</strong> {{ match.date }}</p>
-                <p><strong>Time Slot:</strong> {{ match.timeSlot }}</p>
+                <p><strong>Time Slot:</strong> {{ match.time_slot }}</p>
                 <p><strong>Hall:</strong> {{ match.hallName }}</p>
-                <p><strong>Table:</strong> {{ match.tableNo }}</p>
-                <p><strong>Teams:</strong> {{ match.team1Name }} vs {{ match.team2Name }}</p>
+                <p><strong>Table:</strong> {{ match.table_no }}</p>
+                <p><strong>Teams:</strong> {{ match.team_white }} vs {{ match.team_black }}</p>
                 <p><strong>Arbiter:</strong> {{ match.arbiterName }}</p>
             </div>
 
-            {% if match.is_coach_team1 %}
+            <!-- Always show player assignment for coach's teams -->
             <div class="player-assignment">
                 <h4>Assign Your Player</h4>
+                {% if match.is_coach_team1 %}
                 {% if not match.white_player_name %}
-                <form method="POST" action="/assign_player/{{ user.username }}/{{ match.matchID }}/">
+                <form method="POST" action="/assign_player/{{ user.username }}/{{ match.id }}/">
                     {% csrf_token %}
                     <select name="player_username" required>
                         <option value="">Select a player</option>
@@ -101,17 +104,25 @@
                 {% else %}
                 <p>Assigned Player: {{ match.white_player_name }}</p>
                 {% endif %}
-            </div>
-            {% else %}
-            <div class="player-assignment">
-                <h4>Opponent's Player</h4>
-                {% if match.black_player_name %}
-                <p>Assigned Player: {{ match.black_player_name }}</p>
                 {% else %}
-                <p>Waiting for opponent to assign player</p>
+                {% if not match.black_player_name %}
+                <form method="POST" action="/assign_player/{{ user.username }}/{{ match.id }}/">
+                    {% csrf_token %}
+                    <select name="player_username" required>
+                        <option value="">Select a player</option>
+                        {% for player in team_players %}
+                        <option value="{{ player.username }}">
+                            {{ player.name }} {{ player.surname }} (Rating: {{ player.elo_rating }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit">Assign Player</button>
+                </form>
+                {% else %}
+                <p>Assigned Player: {{ match.black_player_name }}</p>
+                {% endif %}
                 {% endif %}
             </div>
-            {% endif %}
         </div>
         {% empty %}
         <p>No matches scheduled for your team.</p>
@@ -279,4 +290,57 @@
         background-color: #f1f1f1;
     }
 </style>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Get all tables data from server
+        const tablesData = [
+            {% for table in tables %}
+        {
+            hall_id: {{ table.hall_id }},
+        table_no: {{ table.table_no }}
+        },
+        {% endfor %}
+    ];
+
+    const hallSelect = document.getElementById('hall-select');
+    const tableSelect = document.getElementById('table-select');
+
+    // When hall selection changes
+    hallSelect.addEventListener('change', function () {
+        const selectedHallId = parseInt(this.value, 10);
+
+        // Clear existing options
+        tableSelect.innerHTML = '';
+
+        if (!selectedHallId) {
+            tableSelect.disabled = true;
+            tableSelect.innerHTML = '<option value="">-- Select Hall First --</option>';
+            return;
+        }
+
+        // Filter tables for selected hall
+        const hallTables = tablesData.filter(table => table.hall_id === selectedHallId);
+
+        if (hallTables.length === 0) {
+            tableSelect.disabled = true;
+            tableSelect.innerHTML = '<option value="">No tables available in this hall</option>';
+            return;
+        }
+
+        // Add options for each table
+        tableSelect.disabled = false;
+        tableSelect.innerHTML = '<option value="">-- Select Table --</option>';
+
+        hallTables.forEach(table => {
+            const option = document.createElement('option');
+            option.value = table.table_no;
+            option.textContent = `Table ${table.table_no}`;
+            tableSelect.appendChild(option);
+        });
+    });
+});
+</script>
+{% endblock %}
 {% endblock %}

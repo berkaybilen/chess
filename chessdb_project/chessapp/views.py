@@ -91,22 +91,24 @@ def dashboard_view(request, role, username):
             cur.execute("SELECT * FROM Hall")
             halls = cur.fetchall()
 
-            # Get tables
-            cur.execute("SELECT * FROM HallTable")
+            # Get all tables from all halls
+            cur.execute("SELECT * FROM HallTable ORDER BY hall_id, table_no")
             tables = cur.fetchall()
 
             # Get teams coached by this user
             cur.execute("""
-                SELECT t.* FROM Team t
+                SELECT * FROM Team t
                 JOIN CoachTeamAgreement cta ON t.id = cta.team_id
                 WHERE cta.coach_user_id = %s
                 AND CURRENT_DATE BETWEEN cta.contract_start AND cta.contract_finish
             """, (user['id'],))  # Changed to use id instead of username
             coach_teams = cur.fetchall()
-
+            
             # Get all teams
             cur.execute("SELECT * FROM Team")
             all_teams = cur.fetchall()
+
+            all_teams = [team for team in all_teams if team['id'] not in [t['id'] for t in coach_teams]]
 
             # Get certified arbiters
             cur.execute("""
@@ -117,13 +119,12 @@ def dashboard_view(request, role, username):
             """)
             arbiters = cur.fetchall()
 
-            # Get team matches and player assignments
             cur.execute("""
                 SELECT 
                     m.*,
                     h.name as hallName,
-                    t1.name as team1Name,
-                    t2.name as team2Name,
+                    t1.name as team_white,
+                    t2.name as team_black,
                     CONCAT(a.name, ' ', a.surname) as arbiterName,
                     CASE 
                         WHEN m.team_white IN (
@@ -219,19 +220,31 @@ def assign_player(request, username, match_id):
                             SELECT team_id FROM CoachTeamAgreement 
                             WHERE coach_user_id = %s 
                             AND CURRENT_DATE BETWEEN contract_start AND contract_finish
-                        ) THEN true
-                        ELSE false
-                    END as is_coach_team1
+                        ) THEN 'white'
+                        WHEN m.team_black IN (
+                            SELECT team_id FROM CoachTeamAgreement 
+                            WHERE coach_user_id = %s 
+                            AND CURRENT_DATE BETWEEN contract_start AND contract_finish
+                        ) THEN 'black'
+                        ELSE 'none'
+                    END as coach_team_side
                 FROM Matches m
                 WHERE m.id = %s
-            """, (coach['id'], match_id))
+            """, (coach['id'], coach['id'], match_id))
             match = cur.fetchone()
             
             if not match:
                 return redirect(f"/dashboard/coach/{username}?error=Match not found")
             
-            # Verify player belongs to the correct team
-            team_id = match['team_white'] if match['is_coach_team1'] else match['team_black']
+            # Debug information
+            print(f"Match ID: {match_id}, Player ID: {player_id}")
+            print(f"Coach team side: {match['coach_team_side']}")
+            
+            if match['coach_team_side'] == 'none':
+                return redirect(f"/dashboard/coach/{username}?error=You don't coach either team in this match")
+            
+            # Check if player is in the coach's team
+            team_id = match['team_white'] if match['coach_team_side'] == 'white' else match['team_black']
             cur.execute("""
                 SELECT 1 FROM Plays_in
                 WHERE player_user_id = %s AND team_id = %s
@@ -243,36 +256,33 @@ def assign_player(request, username, match_id):
             cur.execute("SELECT * FROM MatchResults WHERE id = %s", (match_id,))
             match_result = cur.fetchone()
             
+            # Determine which field to update based on coach's team side
+            player_field = 'white_player_id' if match['coach_team_side'] == 'white' else 'black_player_id'
+            
             if match_result:
-                # Update existing match result
-                player_field = 'white_player_id' if match['is_coach_team1'] else 'black_player_id'
+                # Update existing match result with appropriate player field
                 cur.execute(f"""
                     UPDATE MatchResults 
                     SET {player_field} = %s
                     WHERE id = %s
                 """, (player_id, match_id))
             else:
-                # Create new match result entry with appropriate player assignment
-                white_player_id = player_id if match['is_coach_team1'] else None
-                black_player_id = None if match['is_coach_team1'] else player_id
-                
-                # If we need a dummy value for the other player that will be updated later
-                dummy_value = "NULL"
-                
-                if white_player_id:
+                # Create new match result with appropriate player field
+                if match['coach_team_side'] == 'white':
                     cur.execute("""
                         INSERT INTO MatchResults (id, white_player_id, black_player_id, result)
                         VALUES (%s, %s, NULL, NULL)
-                    """, (match_id, white_player_id))
+                    """, (match_id, player_id))
                 else:
                     cur.execute("""
                         INSERT INTO MatchResults (id, white_player_id, black_player_id, result)
                         VALUES (%s, NULL, %s, NULL)
-                    """, (match_id, black_player_id))
+                    """, (match_id, player_id))
             
             return redirect(f"/dashboard/coach/{username}?success=Player assigned successfully")
             
     except Exception as e:
+        print(f"Error assigning player: {str(e)}")
         return redirect(f"/dashboard/coach/{username}?error={str(e)}")
 
 @csrf_exempt
@@ -304,6 +314,16 @@ def create_match(request, username):
             return JsonResponse({"error": "Missing required fields"}, status=400)
         
         with get_cursor(dictrows=True) as cur:
+            # Check if hall_id and table_no combination exists
+            cur.execute("""
+                SELECT * FROM HallTable 
+                WHERE hall_id = %s AND table_no = %s
+            """, (hall_id, table_id))
+            hall_table = cur.fetchone()
+            
+            if not hall_table:
+                return redirect(f"/dashboard/coach/{username}?error=Invalid hall and table combination")
+                
             # Get the arbiter's ID
             cur.execute("SELECT id FROM Arbiters WHERE username = %s", (arbiter_username,))
             arbiter_data = cur.fetchone()
@@ -336,7 +356,7 @@ def create_match(request, username):
                 return redirect(f"/dashboard/coach/{username}?error={str(e)}")
                 
     except Exception as e:
-        return redirect(f"/dashboard/coach/{username}?error=Invalid data format")
+        return redirect(f"/dashboard/coach/{username}?error=Invalid data format: {str(e)}")
 
 @csrf_exempt
 @role_required('manager')

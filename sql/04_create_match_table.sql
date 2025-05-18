@@ -27,8 +27,8 @@ CREATE TABLE Matches (
 
 CREATE TABLE MatchResults (
     id INT PRIMARY KEY,
-    white_player_id INT NOT NULL,
-    black_player_id INT NOT NULL,
+    white_player_id INT,
+    black_player_id INT,
     result ENUM('draw', 'black wins', 'white wins'),
 
     FOREIGN KEY (id) REFERENCES Matches(id)
