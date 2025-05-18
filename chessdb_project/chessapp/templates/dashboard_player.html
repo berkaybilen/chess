@@ -1,2 +1,200 @@
-<h1>Welcome Player {{ user.username }}</h1>
-<p>You can view your match history and stats.</p>
+{% extends "base.html" %}
+{% block content %}
+
+<div class="player-profile">
+    <h1>Welcome, {{ player_details.name }} {{ player_details.surname }}</h1>
+    <div class="player-stats">
+        <p><strong>Title:</strong> {{ player_details.title_name }}</p>
+        <p><strong>ELO Rating:</strong> {{ player_details.elo_rating }}</p>
+        <p><strong>Nationality:</strong> {{ player_details.nationality }}</p>
+        <p><strong>FIDE ID:</strong> {{ player_details.fide_id }}</p>
+        <p><strong>Date of Birth:</strong> {{ player_details.date_of_birth }}</p>
+    </div>
+</div>
+
+<div class="stats-section">
+    <h2>Co-Player Statistics</h2>
+
+    {% if most_played_elo > 0 %}
+    <div class="most-played">
+        <h3>Most Played Opponent(s) ELO Rating</h3>
+        <div class="stat-box">
+            <span class="stat-value">{{ most_played_elo|floatformat:0 }}</span>
+        </div>
+        <p class="stat-note">This is {% if opponents.0.games_played == opponents.1.games_played %}the average ELO of
+            players{% else %}the ELO of the player{% endif %} you've played the most games with.</p>
+    </div>
+    {% endif %}
+
+    <div class="opponents-list">
+        <h3>All Opponents</h3>
+        {% if opponents %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Opponent</th>
+                    <th>ELO Rating</th>
+                    <th>Games Played</th>
+                    <th>Wins</th>
+                    <th>Draws</th>
+                    <th>Losses</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for opponent in opponents %}
+                <tr>
+                    <td>{{ opponent.opponent_name }} {{ opponent.opponent_surname }}</td>
+                    <td>{{ opponent.opponent_elo }}</td>
+                    <td>{{ opponent.games_played }}</td>
+                    <td>{{ opponent.wins }}</td>
+                    <td>{{ opponent.draws }}</td>
+                    <td>{{ opponent.losses }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>You haven't played any matches yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="match-history">
+    <h2>Match History</h2>
+    {% if matches %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Time Slot</th>
+                <th>Venue</th>
+                <th>Teams</th>
+                <th>Opponent</th>
+                <th>Result</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for match in matches %}
+            <tr class="match-row {{ match.result }}">
+                <td>{{ match.date }}</td>
+                <td>{{ match.time_slot }}</td>
+                <td>{{ match.hall_name }} (Table {{ match.table_no }})</td>
+                <td>{{ match.team_white_name }} vs {{ match.team_black_name }}</td>
+                <td>{{ match.opponent_name }} ({{ match.opponent_elo }})</td>
+                <td>
+                    {% if match.result == 'upcoming' %}
+                    Upcoming
+                    {% elif match.result == 'win' %}
+                    You won
+                    {% elif match.result == 'loss' %}
+                    You lost
+                    {% else %}
+                    Draw
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>You don't have any match history yet.</p>
+    {% endif %}
+</div>
+
+{% if request.GET.error %}
+<div class="error">{{ request.GET.error }}</div>
+{% endif %}
+{% if request.GET.success %}
+<div class="success">{{ request.GET.success }}</div>
+{% endif %}
+
+<style>
+    .player-profile {
+        background-color: #f9f9f9;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .player-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-top: 15px;
+    }
+
+    .stats-section {
+        margin-bottom: 30px;
+    }
+
+    .most-played {
+        background-color: #e8f5e9;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .stat-box {
+        background-color: #4CAF50;
+        color: white;
+        border-radius: 50%;
+        width: 120px;
+        height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 20px auto;
+    }
+
+    .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .stat-note {
+        font-style: italic;
+        color: #666;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .data-table th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+    }
+
+    .data-table tr:hover {
+        background-color: #f5f5f5;
+    }
+
+    .match-row.win {
+        background-color: rgba(76, 175, 80, 0.1);
+    }
+
+    .match-row.loss {
+        background-color: rgba(244, 67, 54, 0.1);
+    }
+
+    .match-row.draw {
+        background-color: rgba(255, 152, 0, 0.1);
+    }
+
+    .match-row.upcoming {
+        background-color: rgba(33, 150, 243, 0.1);
+    }
+</style>
+
+{% endblock %}

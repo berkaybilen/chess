@@ -181,6 +181,139 @@ def dashboard_view(request, role, username):
             "team_players": team_players
         }
         return render(request, "dashboard_coach.html", context)
+    elif role == 'player':
+        with get_cursor(dictrows=True) as cur:
+            # Get player details
+            cur.execute("""
+                SELECT p.*, t.name as title_name
+                FROM Players p
+                LEFT JOIN Title t ON p.title_id = t.id
+                WHERE p.username = %s
+            """, (username,))
+            player_details = cur.fetchone()
+            
+            if not player_details:
+                return redirect("/login/?error=Player not found")
+                        
+            # Get all opponents this player has played against
+            cur.execute("""
+                SELECT 
+                    CASE 
+                        WHEN mr.white_player_id = %s THEN mr.black_player_id
+                        ELSE mr.white_player_id
+                    END as opponent_id,
+                    CASE 
+                        WHEN mr.white_player_id = %s THEN p2.name
+                        ELSE p1.name
+                    END as opponent_name,
+                    CASE 
+                        WHEN mr.white_player_id = %s THEN p2.surname
+                        ELSE p1.surname
+                    END as opponent_surname,
+                    CASE 
+                        WHEN mr.white_player_id = %s THEN p2.elo_rating
+                        ELSE p1.elo_rating
+                    END as opponent_elo,
+                    COUNT(*) as games_played,
+                    SUM(CASE 
+                        WHEN mr.result = 'white_win' AND mr.white_player_id = %s THEN 1
+                        WHEN mr.result = 'black_win' AND mr.black_player_id = %s THEN 1
+                        ELSE 0
+                    END) as wins,
+                    SUM(CASE 
+                        WHEN mr.result = 'draw' THEN 1
+                        ELSE 0
+                    END) as draws,
+                    SUM(CASE 
+                        WHEN mr.result = 'white_win' AND mr.black_player_id = %s THEN 1
+                        WHEN mr.result = 'black_win' AND mr.white_player_id = %s THEN 1
+                        ELSE 0
+                    END) as losses
+                FROM MatchResults mr
+                JOIN Players p1 ON mr.white_player_id = p1.id
+                JOIN Players p2 ON mr.black_player_id = p2.id
+                WHERE (mr.white_player_id = %s OR mr.black_player_id = %s)
+                AND mr.result IS NOT NULL
+                GROUP BY opponent_id, opponent_name, opponent_surname, opponent_elo
+                ORDER BY games_played DESC
+            """, (player_details['id'], player_details['id'], player_details['id'], 
+                  player_details['id'], player_details['id'], player_details['id'],
+                  player_details['id'], player_details['id'], player_details['id'], 
+                  player_details['id']))
+            
+            opponents = cur.fetchall()
+            print(f"Found {len(opponents)} opponents")  # Debug output
+            
+            # Find the maximum number of games played with any opponent
+            max_games = 0
+            if opponents:
+                max_games = opponents[0]['games_played']
+            
+            # Get the ELO rating of the player(s) played with the most
+            most_played_opponents = [opp for opp in opponents if opp['games_played'] == max_games]
+            most_played_elo = 0
+            
+            if most_played_opponents:
+                # If there's only one player with the max games, show their ELO
+                if len(most_played_opponents) == 1:
+                    most_played_elo = most_played_opponents[0]['opponent_elo']
+                # If there are multiple players tied for max games, show their average ELO
+                else:
+                    total_elo = sum(opp['opponent_elo'] for opp in most_played_opponents)
+                    most_played_elo = total_elo / len(most_played_opponents)
+            
+            # Get all matches this player has participated in
+            cur.execute("""
+                SELECT 
+                    m.id,
+                    m.date, 
+                    m.time_slot,
+                    h.name as hall_name,
+                    m.table_no,
+                    t1.name as team_white_name,
+                    t2.name as team_black_name,
+                    CASE 
+                        WHEN mr.white_player_id = %s THEN 'white'
+                        ELSE 'black'
+                    END as played_as,
+                    CASE 
+                        WHEN mr.result = 'white_win' AND mr.white_player_id = %s THEN 'win'
+                        WHEN mr.result = 'black_win' AND mr.black_player_id = %s THEN 'win'
+                        WHEN mr.result = 'draw' THEN 'draw'
+                        WHEN mr.result IS NULL THEN 'upcoming'
+                        ELSE 'loss'
+                    END as result,
+                    CASE 
+                        WHEN mr.white_player_id = %s THEN p2.name || ' ' || p2.surname
+                        ELSE p1.name || ' ' || p1.surname
+                    END as opponent_name,
+                    CASE 
+                        WHEN mr.white_player_id = %s THEN p2.elo_rating
+                        ELSE p1.elo_rating
+                    END as opponent_elo
+                FROM MatchResults mr
+                JOIN Matches m ON mr.id = m.id
+                JOIN Hall h ON m.hall_id = h.id
+                JOIN Team t1 ON m.team_white = t1.id
+                JOIN Team t2 ON m.team_black = t2.id
+                JOIN Players p1 ON mr.white_player_id = p1.id
+                JOIN Players p2 ON mr.black_player_id = p2.id
+                WHERE mr.white_player_id = %s OR mr.black_player_id = %s
+                ORDER BY m.date DESC, m.time_slot DESC
+            """, (player_details['id'], player_details['id'], player_details['id'],
+                  player_details['id'], player_details['id'], 
+                  player_details['id'], player_details['id']))
+            
+            matches = cur.fetchall()
+            print(f"Found {len(matches)} matches")  # Debug output
+        
+        return render(request, "dashboard_player.html", {
+            "user": user,
+            "player_details": player_details,
+            "opponents": opponents,
+            "most_played_elo": most_played_elo,
+            "matches": matches
+        })
 
     return render(request, f"dashboard_{role}.html", {"user": user})
 
