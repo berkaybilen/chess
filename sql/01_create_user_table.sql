@@ -19,7 +19,7 @@ CREATE TABLE Players (
     date_of_birth DATE NOT NULL,
     fide_id VARCHAR(20) UNIQUE NOT NULL,
     elo_rating INT NOT NULL CHECK (elo_rating > 1000),
-    title_id INT NOT NULL,
+    title_id INT,
 
     FOREIGN KEY (id) REFERENCES Users(id)
         ON UPDATE CASCADE ON DELETE CASCADE,
