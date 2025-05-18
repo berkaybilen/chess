@@ -70,8 +70,21 @@ def dashboard_view(request, role, username):
             # Get halls for renaming
             cur.execute("SELECT * FROM Hall")
             halls = cur.fetchall()
+            
+            # Get certifications for arbiters
+            cur.execute("SELECT * FROM Certification WHERE id IN (SELECT certification_id FROM CertificationArbiter)")
+            arbiter_certifications = cur.fetchall()
+            
+            # Get certifications for coaches
+            cur.execute("SELECT * FROM Certification WHERE id IN (SELECT certification_id FROM CertificationCoach)")
+            coach_certifications = cur.fetchall()
         
-        return render(request, "dashboard_manager.html", {"user": user, "halls": halls})
+        return render(request, "dashboard_manager.html", {
+            "user": user, 
+            "halls": halls,
+            "arbiter_certifications": arbiter_certifications,
+            "coach_certifications": coach_certifications
+        })
     elif role == 'coach':
         with get_cursor(dictrows=True) as cur:
             # Get halls
@@ -371,30 +384,87 @@ def add_user(request, username):
                     name = request.POST.get('name')
                     surname = request.POST.get('surname')
                     elo_rating = request.POST.get('elo_rating', 1200)
+                    title = request.POST.get('title')
+                    nationality = request.POST.get('nationality')
+                    date_of_birth = request.POST.get('date_of_birth')
+                    fide_id = request.POST.get('fide_id')
+                    
+                    # Validate required fields
+                    if not all([title, nationality, date_of_birth, fide_id]):
+                        # Delete the user if validation fails
+                        cur.execute("DELETE FROM Users WHERE id = %s", (user_id,))
+                        return redirect(f"/dashboard/manager/{username}?error=All player fields are required")
+                    
+                    # Get title_id from title name
+                    cur.execute("SELECT id FROM Title WHERE name = %s", (title,))
+                    title_result = cur.fetchone()
+                    if not title_result:
+                        # Delete the user if title not found
+                        cur.execute("DELETE FROM Users WHERE id = %s", (user_id,))
+                        return redirect(f"/dashboard/manager/{username}?error=Invalid title selected")
+                    
+                    title_id = title_result['id']
                     
                     cur.execute("""
-                        INSERT INTO Players (id, username, name, surname, elo_rating) 
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, (user_id, new_username, name, surname, elo_rating))
+                        INSERT INTO Players (id, username, name, surname, elo_rating, title_id, nationality, date_of_birth, fide_id) 
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (user_id, new_username, name, surname, elo_rating, title_id, nationality, date_of_birth, fide_id))
                     
                 elif role == 'coach':
                     name = request.POST.get('coach_name')
                     surname = request.POST.get('coach_surname')
+                    nationality = request.POST.get('coach_nationality')
+                    certification_name = request.POST.get('coach_certification')
+                    
+                    # Validate required fields
+                    if not all([name, surname, nationality, certification_name]):
+                        # Delete the user if validation fails
+                        cur.execute("DELETE FROM Users WHERE id = %s", (user_id,))
+                        return redirect(f"/dashboard/manager/{username}?error=All coach fields are required")
+                    
+                    # Get certification_id from the certification name
+                    cur.execute("SELECT id FROM Certification WHERE name = %s", (certification_name,))
+                    certification_result = cur.fetchone()
+                    if not certification_result:
+                        # If certification doesn't exist, create it
+                        cur.execute("""
+                            INSERT INTO Certification (name)
+                            VALUES (%s)
+                        """, (certification_name,))
+                        
+                        cur.execute("SELECT id FROM Certification WHERE name = %s", (certification_name,))
+                        certification_result = cur.fetchone()
+                    
+                    certification_id = certification_result['id']
                     
                     cur.execute("""
-                        INSERT INTO Coaches (id, username, name, surname) 
-                        VALUES (%s, %s, %s, %s)
-                    """, (user_id, new_username, name, surname))
+                        INSERT INTO Coaches (id, username, name, surname, nationality) 
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (user_id, new_username, name, surname, nationality))
+                    
+                    # Insert into CertificationCoach table
+                    cur.execute("""
+                        INSERT INTO CertificationCoach (coach_id, certification_id) 
+                        VALUES (%s, %s)
+                    """, (user_id, certification_id))
                     
                 elif role == 'arbiter':
                     name = request.POST.get('arbiter_name')
                     surname = request.POST.get('arbiter_surname')
+                    nationality = request.POST.get('arbiter_nationality')
                     certification_id = request.POST.get('certification_id')
+                    experience_level = request.POST.get('arbiter_experience_level')
+                    
+                    # Validate required fields
+                    if not all([name, surname, nationality, experience_level]):
+                        # Delete the user if validation fails
+                        cur.execute("DELETE FROM Users WHERE id = %s", (user_id,))
+                        return redirect(f"/dashboard/manager/{username}?error=All arbiter fields are required")
                     
                     cur.execute("""
-                        INSERT INTO Arbiters (id, username, name, surname) 
-                        VALUES (%s, %s, %s, %s)
-                    """, (user_id, new_username, name, surname))
+                        INSERT INTO Arbiters (id, username, name, surname, nationality, experience_level) 
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                    """, (user_id, new_username, name, surname, nationality, experience_level))
                     
                     if certification_id:
                         cur.execute("""

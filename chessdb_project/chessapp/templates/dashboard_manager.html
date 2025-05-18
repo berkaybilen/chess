@@ -39,7 +39,6 @@
                 <option value="player">Player</option>
                 <option value="coach">Coach</option>
                 <option value="arbiter">Arbiter</option>
-                <option value="manager">Database Manager</option>
             </select>
         </div>
 
@@ -53,6 +52,29 @@
             <div class="form-group">
                 <label>Surname:</label>
                 <input type="text" name="surname">
+            </div>
+            <div class="form-group">
+                <label>Title:</label>
+                <select name="title">
+                    <option value="">-- Select a title --</option>
+                    <option value="Grandmaster">Grandmaster</option>
+                    <option value="International Master">International Master</option>
+                    <option value="FIDE Master">FIDE Master</option>
+                    <option value="Candidate Master">Candidate Master</option>
+                    <option value="National Master">National Master</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Nationality:</label>
+                <input type="text" name="nationality">
+            </div>
+            <div class="form-group">
+                <label>Date of Birth:</label>
+                <input type="date" name="date_of_birth">
+            </div>
+            <div class="form-group">
+                <label>FIDE ID:</label>
+                <input type="number" name="fide_id">
             </div>
             <div class="form-group">
                 <label>Initial ELO Rating:</label>
@@ -71,6 +93,19 @@
                 <label>Surname:</label>
                 <input type="text" name="coach_surname">
             </div>
+            <div class="form-group">
+                <label>Nationality:</label>
+                <input type="text" name="coach_nationality">
+            </div>
+            <div class="form-group">
+                <label>Certification:</label>
+                <select name="coach_certification">
+                    <option value="">-- Select a certification --</option>
+                    {% for cert in coach_certifications %}
+                    <option value="{{ cert.name }}">{{ cert.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
 
         <!-- Arbiter-specific fields -->
@@ -85,14 +120,26 @@
                 <input type="text" name="arbiter_surname">
             </div>
             <div class="form-group">
+                <label>Nationality:</label>
+                <input type="text" name="arbiter_nationality">
+            </div>
+            <div class="form-group">
                 <label>Certification:</label>
                 <select name="certification_id">
                     <option value="">-- Select a certification --</option>
-                    <option value="1">FIDE Certified</option>
-                    <option value="2">International Arbiter</option>
-                    <option value="3">National Arbiter</option>
-                    <option value="4">Regional Certification</option>
-                    <option value="5">Local Certification</option>
+                    {% for cert in arbiter_certifications %}
+                    <option value="{{ cert.id }}">{{ cert.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Experience Level:</label>
+                <select name="arbiter_experience_level">
+                    <option value="">-- Select experience level --</option>
+                    <option value="Advanced">Advanced</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Expert">Expert</option>
+                    <option value="Beginner">Beginner</option>
                 </select>
             </div>
         </div>
@@ -233,11 +280,11 @@
     .password-requirements li {
         transition: color 0.3s ease;
     }
-    
+
     .password-requirements li.valid {
         color: green;
     }
-    
+
     .password-requirements li.invalid {
         color: red;
     }
@@ -267,6 +314,21 @@
     // Show/hide role-specific fields when role selection changes
     document.addEventListener('DOMContentLoaded', function () {
         const roleSelect = document.querySelector('select[name="role"]');
+        const form = document.querySelector('form[action^="/add_user/"]');
+
+        // Initialize the form with the default role selection
+        const initialRole = roleSelect.value;
+        const roleFields = document.querySelectorAll('.role-fields');
+        roleFields.forEach(field => field.style.display = 'none');
+
+        if (initialRole === 'player') {
+            document.getElementById('player-fields').style.display = 'block';
+        } else if (initialRole === 'coach') {
+            document.getElementById('coach-fields').style.display = 'block';
+        } else if (initialRole === 'arbiter') {
+            document.getElementById('arbiter-fields').style.display = 'block';
+        }
+
         roleSelect.addEventListener('change', function () {
             const roleFields = document.querySelectorAll('.role-fields');
             roleFields.forEach(field => field.style.display = 'none');
@@ -280,6 +342,52 @@
                 document.getElementById('arbiter-fields').style.display = 'block';
             }
         });
+
+        // Form validation before submit
+        form.addEventListener('submit', function (event) {
+            const selectedRole = roleSelect.value;
+
+            // Validate player fields
+            if (selectedRole === 'player') {
+                const requiredFields = ['name', 'surname', 'nationality', 'date_of_birth', 'fide_id', 'title'];
+                for (let field of requiredFields) {
+                    const input = form.querySelector(`[name="${field}"]`);
+                    if (!input.value) {
+                        event.preventDefault();
+                        alert(`Please fill out the ${field.replace('_', ' ')} field`);
+                        input.focus();
+                        return false;
+                    }
+                }
+            }
+            // Validate coach fields
+            else if (selectedRole === 'coach') {
+                const requiredFields = ['coach_name', 'coach_surname', 'coach_nationality', 'coach_certification'];
+                for (let field of requiredFields) {
+                    const input = form.querySelector(`[name="${field}"]`);
+                    if (!input.value) {
+                        event.preventDefault();
+                        alert(`Please fill out the ${field.replace('coach_', '').replace('_', ' ')} field`);
+                        input.focus();
+                        return false;
+                    }
+                }
+            }
+            // Validate arbiter fields
+            else if (selectedRole === 'arbiter') {
+                const requiredFields = ['arbiter_name', 'arbiter_surname', 'arbiter_nationality', 'certification_id', 'arbiter_experience_level'];
+                for (let field of requiredFields) {
+                    const input = form.querySelector(`[name="${field}"]`);
+                    if (!input.value) {
+                        event.preventDefault();
+                        const fieldName = field.replace('arbiter_', '').replace('_', ' ');
+                        alert(`Please fill out the ${fieldName} field`);
+                        input.focus();
+                        return false;
+                    }
+                }
+            }
+        });
     });
 
     // Password validation in real-time
@@ -290,10 +398,10 @@
         const lowercaseCriteria = document.getElementById('lowercase');
         const numberCriteria = document.getElementById('number');
         const specialCriteria = document.getElementById('special');
-        
+
         function validatePassword() {
             const password = passwordInput.value;
-            
+
             // Check length
             if (password.length >= 8) {
                 lengthCriteria.classList.remove('invalid');
@@ -302,7 +410,7 @@
                 lengthCriteria.classList.remove('valid');
                 lengthCriteria.classList.add('invalid');
             }
-            
+
             // Check uppercase
             if (/[A-Z]/.test(password)) {
                 uppercaseCriteria.classList.remove('invalid');
@@ -311,7 +419,7 @@
                 uppercaseCriteria.classList.remove('valid');
                 uppercaseCriteria.classList.add('invalid');
             }
-            
+
             // Check lowercase
             if (/[a-z]/.test(password)) {
                 lowercaseCriteria.classList.remove('invalid');
@@ -320,7 +428,7 @@
                 lowercaseCriteria.classList.remove('valid');
                 lowercaseCriteria.classList.add('invalid');
             }
-            
+
             // Check number
             if (/[0-9]/.test(password)) {
                 numberCriteria.classList.remove('invalid');
@@ -329,7 +437,7 @@
                 numberCriteria.classList.remove('valid');
                 numberCriteria.classList.add('invalid');
             }
-            
+
             // Check special character
             if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
                 specialCriteria.classList.remove('invalid');
@@ -339,11 +447,11 @@
                 specialCriteria.classList.add('invalid');
             }
         }
-        
+
         // Initialize criteria as invalid
         const allCriteria = document.querySelectorAll('#password-criteria li');
         allCriteria.forEach(item => item.classList.add('invalid'));
-        
+
         // Add event listeners
         passwordInput.addEventListener('keyup', validatePassword);
         passwordInput.addEventListener('input', validatePassword);
