@@ -270,6 +270,46 @@ INSERT INTO Coaches (id, username, name, surname, nationality)
 SELECT id, username, 'Yusuf', 'Arslan', 'Turkey'
 FROM Users WHERE username = 'arslan_yusuf';
 
+-- Insert into CoachTeamAgreement using Coaches.username
+INSERT INTO CoachTeamAgreement (coach_user_id, team_id, contract_start, contract_finish)
+SELECT id, 1, STR_TO_DATE('01-01-2023', '%d-%m-%Y'), STR_TO_DATE('01-01-2026', '%d-%m-%Y')
+FROM Coaches WHERE username = 'carol';
+
+INSERT INTO CoachTeamAgreement (coach_user_id, team_id, contract_start, contract_finish)
+SELECT id, 2, STR_TO_DATE('15-02-2024', '%d-%m-%Y'), STR_TO_DATE('15-02-2026', '%d-%m-%Y')
+FROM Coaches WHERE username = 'david_b';
+
+INSERT INTO CoachTeamAgreement (coach_user_id, team_id, contract_start, contract_finish)
+SELECT id, 3, STR_TO_DATE('01-03-2022', '%d-%m-%Y'), STR_TO_DATE('01-03-2025', '%d-%m-%Y')
+FROM Coaches WHERE username = 'emma_green';
+
+INSERT INTO CoachTeamAgreement (coach_user_id, team_id, contract_start, contract_finish)
+SELECT id, 4, STR_TO_DATE('10-05-2024', '%d-%m-%Y'), STR_TO_DATE('10-05-2026', '%d-%m-%Y')
+FROM Coaches WHERE username = 'fatih';
+
+INSERT INTO CoachTeamAgreement (coach_user_id, team_id, contract_start, contract_finish)
+SELECT id, 5, STR_TO_DATE('01-04-2023', '%d-%m-%Y'), STR_TO_DATE('01-10-2024', '%d-%m-%Y')
+FROM Coaches WHERE username = 'hana';
+
+INSERT INTO CoachTeamAgreement (coach_user_id, team_id, contract_start, contract_finish)
+SELECT id, 6, STR_TO_DATE('01-01-2024', '%d-%m-%Y'), STR_TO_DATE('01-01-2025', '%d-%m-%Y')
+FROM Coaches WHERE username = 'lucaas';
+
+INSERT INTO CoachTeamAgreement (coach_user_id, team_id, contract_start, contract_finish)
+SELECT id, 7, STR_TO_DATE('01-06-2024', '%d-%m-%Y'), STR_TO_DATE('01-06-2025', '%d-%m-%Y')
+FROM Coaches WHERE username = 'mia_rose';
+
+INSERT INTO CoachTeamAgreement (coach_user_id, team_id, contract_start, contract_finish)
+SELECT id, 8, STR_TO_DATE('15-03-2023', '%d-%m-%Y'), STR_TO_DATE('15-09-2025', '%d-%m-%Y')
+FROM Coaches WHERE username = 'onur';
+
+INSERT INTO CoachTeamAgreement (coach_user_id, team_id, contract_start, contract_finish)
+SELECT id, 9, STR_TO_DATE('01-05-2024', '%d-%m-%Y'), STR_TO_DATE('01-11-2025', '%d-%m-%Y')
+FROM Coaches WHERE username = 'sofia_lop';
+
+INSERT INTO CoachTeamAgreement (coach_user_id, team_id, contract_start, contract_finish)
+SELECT id, 10, STR_TO_DATE('01-02-2024', '%d-%m-%Y'), STR_TO_DATE('01-08-2026', '%d-%m-%Y')
+FROM Coaches WHERE username = 'arslan_yusuf';
 
 -- Insert into Arbiters table
 

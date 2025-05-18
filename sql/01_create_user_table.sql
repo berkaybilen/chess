@@ -13,13 +13,13 @@ CREATE TABLE Title (
 CREATE TABLE Players (
     id INT PRIMARY KEY,
     username VARCHAR(50) NOT NULL,
-    name VARCHAR(50),
-    surname VARCHAR(50),
-    nationality VARCHAR(50),
-    date_of_birth DATE,
-    fide_id VARCHAR(20) UNIQUE,
+    name VARCHAR(50) NOT NULL,
+    surname VARCHAR(50) NOT NULL,
+    nationality VARCHAR(50) NOT NULL,
+    date_of_birth DATE NOT NULL,
+    fide_id VARCHAR(20) UNIQUE NOT NULL,
     elo_rating INT NOT NULL CHECK (elo_rating > 1000),
-    title_id INT,
+    title_id INT NOT NULL,
 
     FOREIGN KEY (id) REFERENCES Users(id)
         ON UPDATE CASCADE ON DELETE CASCADE,
