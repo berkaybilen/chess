@@ -11,4 +11,5 @@ urlpatterns = [
     path('delete_match/<str:username>/<int:match_id>/', views.delete_match, name='delete_match'),
     path('add_user/<str:username>/', views.add_user, name='add_user'),
     path('rename_hall/<str:username>/', views.rename_hall, name='rename_hall'),
+    path('rate_match/<str:username>/<int:match_id>/', views.rate_match, name='rate_match'),
 ]

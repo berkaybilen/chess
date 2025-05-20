@@ -10,7 +10,7 @@ CREATE TABLE Matches (
     date                  DATE NOT NULL,
 
     arbiter_user_id       INT NOT NULL,
-    ratings               VARCHAR(10) DEFAULT NULL,
+    ratings               DECIMAL(3,1) DEFAULT NULL, -- CHANGED from VARCHAR(10) to DECIMAL(3,1)
 
     -- Foreign Keys
     FOREIGN KEY (hall_id, table_no) REFERENCES HallTable(hall_id, table_no)

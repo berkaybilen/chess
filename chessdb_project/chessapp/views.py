@@ -216,8 +216,8 @@ def dashboard_view(request, role, username):
                     END as opponent_elo,
                     COUNT(*) as games_played,
                     SUM(CASE 
-                        WHEN mr.result = 'white_win' AND mr.white_player_id = %s THEN 1
-                        WHEN mr.result = 'black_win' AND mr.black_player_id = %s THEN 1
+                        WHEN mr.result = 'white wins' AND mr.white_player_id = %s THEN 1
+                        WHEN mr.result = 'black wins' AND mr.black_player_id = %s THEN 1
                         ELSE 0
                     END) as wins,
                     SUM(CASE 
@@ -225,8 +225,8 @@ def dashboard_view(request, role, username):
                         ELSE 0
                     END) as draws,
                     SUM(CASE 
-                        WHEN mr.result = 'white_win' AND mr.black_player_id = %s THEN 1
-                        WHEN mr.result = 'black_win' AND mr.white_player_id = %s THEN 1
+                        WHEN mr.result = 'white wins' AND mr.black_player_id = %s THEN 1
+                        WHEN mr.result = 'black wins' AND mr.white_player_id = %s THEN 1
                         ELSE 0
                     END) as losses
                 FROM MatchResults mr
@@ -277,12 +277,13 @@ def dashboard_view(request, role, username):
                         ELSE 'black'
                     END as played_as,
                     CASE 
-                        WHEN mr.result = 'white_win' AND mr.white_player_id = %s THEN 'win'
-                        WHEN mr.result = 'black_win' AND mr.black_player_id = %s THEN 'win'
+                        WHEN mr.result = 'white wins' AND mr.white_player_id = %s THEN 'win'
+                        WHEN mr.result = 'black wins' AND mr.black_player_id = %s THEN 'win'
                         WHEN mr.result = 'draw' THEN 'draw'
                         WHEN mr.result IS NULL THEN 'upcoming'
                         ELSE 'loss'
-                    END as result,
+                    END as result_status, -- Renamed to avoid conflict with MatchResults.result
+                    mr.result as match_actual_result, -- Pass the actual result for display if needed
                     CASE 
                         WHEN mr.white_player_id = %s THEN p2.name || ' ' || p2.surname
                         ELSE p1.name || ' ' || p1.surname
@@ -314,6 +315,104 @@ def dashboard_view(request, role, username):
             "most_played_elo": most_played_elo,
             "matches": matches
         })
+    elif role == 'arbiter':
+        with get_cursor(dictrows=True) as cur:
+            cur.execute("SELECT CURRENT_DATE as today")
+            today = cur.fetchone()['today']
+            
+            cur.execute("""
+                SELECT 
+                    m.id, m.date, m.time_slot, m.table_no, m.ratings,
+                    h.name as hall_name,
+                    t1.name as team_white_name,
+                    t2.name as team_black_name,
+                    wp.name as white_player_name,
+                    wp.surname as white_player_surname,
+                    bp.name as black_player_name,
+                    bp.surname as black_player_surname,
+                    mr.result, mr.white_player_id, mr.black_player_id,
+                    CASE WHEN m.date < %s THEN TRUE ELSE FALSE END as past_date
+                FROM Matches m
+                JOIN Hall h ON m.hall_id = h.id
+                JOIN Team t1 ON m.team_white = t1.id
+                JOIN Team t2 ON m.team_black = t2.id
+                LEFT JOIN MatchResults mr ON m.id = mr.id
+                LEFT JOIN Players wp ON mr.white_player_id = wp.id
+                LEFT JOIN Players bp ON mr.black_player_id = bp.id
+                WHERE m.arbiter_user_id = %s
+                ORDER BY m.date DESC, m.time_slot ASC
+            """, (today, user['id']))
+            
+            matches_from_db = cur.fetchall()
+            
+            processed_matches = []
+            for db_row_data in matches_from_db:
+                # Ensure db_row is a dictionary if it's not already (e.g. if it's a Row object)
+                match_item = dict(db_row_data)
+
+                # Explicitly convert names to strings, defaulting to empty string if None or missing
+                match_item['team_white_name'] = str(match_item.get('team_white_name', ''))
+                match_item['team_black_name'] = str(match_item.get('team_black_name', ''))
+
+                wp_name = str(match_item.get('white_player_name', ''))
+                wp_surname = str(match_item.get('white_player_surname', ''))
+                bp_name = str(match_item.get('black_player_name', ''))
+                bp_surname = str(match_item.get('black_player_surname', ''))
+
+                match_item['white_player_name'] = f"{wp_name} {wp_surname}".strip() if wp_name or wp_surname else ''
+                match_item['black_player_name'] = f"{bp_name} {bp_surname}".strip() if bp_name or bp_surname else ''
+                
+                # Ensure 'ratings' and 'past_date' exist, providing defaults if necessary
+                match_item['ratings'] = match_item.get('ratings') # Will be None if not present, handled by template
+                match_item['past_date'] = match_item.get('past_date', False)
+
+
+                # Debugging for match ID 29 after processing
+                if match_item.get('id') == 29:
+                    print(f"DEBUG (View, Post-String-Conversion): Match ID 29 - "
+                          f"White Team: '{match_item['team_white_name']}', "
+                          f"Black Team: '{match_item['team_black_name']}'")
+                
+                processed_matches.append(match_item)
+            
+            waiting_matches = []
+            rated_matches = []
+            upcoming_matches = []
+            
+            total_rated_count = 0
+            sum_of_ratings = 0.0
+
+            for match_in_list in processed_matches: # Renamed loop variable for clarity
+                if match_in_list.get('id') == 29:
+                     print(f"DEBUG (View, Categorization for ID 29): Black Team Name: '{match_in_list.get('team_black_name')}' before list append.")
+
+                if match_in_list.get('ratings') is not None:
+                    rated_matches.append(match_in_list)
+                    total_rated_count += 1
+                    try:
+                        sum_of_ratings += float(match_in_list['ratings'])
+                    except (ValueError, TypeError):
+                        # Handle cases where ratings might not be a valid float, though ideally it should be
+                        pass 
+                elif not match_in_list.get('past_date', False): # Default to False if key missing
+                    upcoming_matches.append(match_in_list)
+                else:
+                    waiting_matches.append(match_in_list)
+            
+            average_rating = (sum_of_ratings / total_rated_count) if total_rated_count > 0 else 0.0
+        
+        context = {
+            "user": user,
+            "waiting_matches": waiting_matches,
+            "rated_matches": rated_matches,
+            "upcoming_matches": upcoming_matches,
+            "total_rated_matches": total_rated_count,
+            "average_rating": round(average_rating, 2),
+            "success": request.GET.get('success'),
+            "error": request.GET.get('error')
+        }
+        
+        return render(request, "dashboard_arbiter.html", context)
 
     return render(request, f"dashboard_{role}.html", {"user": user})
 
@@ -527,13 +626,19 @@ def create_match(request, username):
                 return JsonResponse({"error": "You can only create matches for your own team"}, status=403)
             
             # All validations passed, insert the match
+            
             cur.execute("""
                 INSERT INTO Matches 
                 (date, time_slot, hall_id, table_no, team_white, team_black, arbiter_user_id)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (match_date, start_slot, hall_id, table_id, team1_id, team2_id, arbiter_id))
-            
             match_id = cur.lastrowid
+            # Also insert into MatchResults with NULL values for players and result
+            cur.execute("""
+                INSERT INTO MatchResults (id, white_player_id, black_player_id, result)
+                VALUES (%s, NULL, NULL, NULL)
+            """, (match_id,))
+            
             return redirect(f"/dashboard/coach/{username}?success=Match created successfully")
                 
     except Exception as e:
@@ -812,3 +917,90 @@ def hash_password_view(request):
                 <button type="submit">Hash</button>
             </form>
         """)
+
+@csrf_exempt
+@role_required('arbiter')
+def rate_match(request, username, match_id):
+    """Handle match rating by arbiter."""
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    # Verify if the user is an arbiter
+    with get_cursor(dictrows=True) as cur:
+        cur.execute("SELECT * FROM Users WHERE username = %s AND role = 'arbiter'", (username,))
+        arbiter = cur.fetchone()
+        
+    if not arbiter:
+        return JsonResponse({"error": "Unauthorized access"}, status=401)
+    
+    try:
+        result = request.POST.get('result')
+        rating_str = request.POST.get('rating')
+        
+        # Basic validation
+        if not result or not rating_str:
+            return redirect(f"/dashboard/arbiter/{username}?error=Missing result or rating")
+        
+        # Validate rating range
+        try:
+            rating_float = float(rating_str)
+            if not (0.0 <= rating_float <= 10.0):
+                return redirect(f"/dashboard/arbiter/{username}?error=Rating must be between 0.0 and 10.0")
+        except ValueError:
+            return redirect(f"/dashboard/arbiter/{username}?error=Invalid rating value. Must be a number.")
+        
+        # Verify match exists and can be rated
+        with get_cursor(dictrows=True) as cur:
+            # Get current date for comparisons
+            cur.execute("SELECT CURRENT_DATE as today")
+            today = cur.fetchone()['today']
+            
+            # Check if match exists and is assigned to this arbiter
+            cur.execute("""
+                SELECT m.*, mr.white_player_id, mr.black_player_id, mr.result as current_result
+                FROM Matches m
+                LEFT JOIN MatchResults mr ON m.id = mr.id
+                WHERE m.id = %s AND m.arbiter_user_id = %s
+            """, (match_id, arbiter['id']))
+            
+            match = cur.fetchone()
+            
+            if not match:
+                return redirect(f"/dashboard/arbiter/{username}?error=Match not found or not assigned to you")
+            
+            # Check if match can be rated (date passed, not rated yet, both players assigned)
+            if match['date'] >= today:
+                return redirect(f"/dashboard/arbiter/{username}?error=Can only rate matches after the scheduled date")
+                
+            if match['ratings'] is not None: # This check assumes ratings column stores the actual rating
+                return redirect(f"/dashboard/arbiter/{username}?error=Match has already been rated")
+                
+            if match['white_player_id'] is None or match['black_player_id'] is None:
+                return redirect(f"/dashboard/arbiter/{username}?error=Both players must be assigned before rating")
+            
+            # All validations passed, update the match rating and result
+            cur.execute("""
+                UPDATE Matches 
+                SET ratings = %s
+                WHERE id = %s
+            """, (rating_float, match_id))
+            
+            cur.execute("""
+                UPDATE MatchResults 
+                SET result = %s
+                WHERE id = %s
+            """, (result, match_id))
+            
+            return redirect(f"/dashboard/arbiter/{username}?success=Match rated successfully")
+            
+    except Exception as e:
+        error_str = str(e).lower()
+        user_error_message = f"An error occurred: {str(e)}" # Default user-friendly message
+        if "truncate" in error_str or "data too long" in error_str:
+            user_error_message = "Error: The result value is too long for the database. Please check input or contact support."
+        elif "incorrect decimal value" in error_str or "out of range value" in error_str and "ratings" in error_str:
+             user_error_message = "Error: The rating value is not valid for the database. Ensure it's a number like 7.0 or 7.5."
+
+
+        print(f"Error rating match (ID: {match_id}): {str(e)}") # Log the full error for the admin
+        return redirect(f"/dashboard/arbiter/{username}?error={user_error_message}")
