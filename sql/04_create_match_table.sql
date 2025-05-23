@@ -11,7 +11,9 @@ CREATE TABLE Matches (
 
     arbiter_user_id       INT NOT NULL,
     ratings               DECIMAL(3,1) DEFAULT NULL, -- CHANGED from VARCHAR(10) to DECIMAL(3,1)
-
+    
+    CHECK (ratings BETWEEN 1 AND 10),
+    CHECK (time_slot BETWEEN 1 AND 4),
     -- Foreign Keys
     FOREIGN KEY (hall_id, table_no) REFERENCES HallTable(hall_id, table_no)
         ON DELETE RESTRICT ON UPDATE CASCADE,
